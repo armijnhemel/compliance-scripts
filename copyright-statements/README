@@ -1,1 +1,7 @@
 Script that takes a JSON output file from Scancode, plus a directory path, and generates a copyright notices file. This is a very rough proof of concept script.
+
+The following should be noted: this script only processes what ScanCode reports. If there is a bug in ScanCode, or if the output from ScanCode is not complete because it does not recognize for example a copyright statement or author statement, then it will not magically appear in the report.
+
+ScanCode can be found here:
+
+https://github.com/nexB/scancode-toolkit
