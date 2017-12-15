@@ -1,0 +1,1 @@
+Script that takes a JSON output file from Scancode, plus a directory path, and generates a copyright notices file. This is a very rough proof of concept script.
