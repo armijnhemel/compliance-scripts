@@ -104,6 +104,7 @@ if os.path.exists(os.path.join(storedirectory, 'archives.json')):
 
 ## now create the JSON
 kernelfiles = os.listdir(storedirectory)
+kernelfiles.sort()
 
 outjson = []
 
