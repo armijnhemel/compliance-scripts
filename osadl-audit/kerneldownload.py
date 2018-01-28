@@ -5,7 +5,7 @@
 ## Licensed under the terms of the GPLv3 license
 ## SPDX-License-Identifier: GPL-3.0-only
 
-import os, sys, tempfile, subprocess, json, hashlib, argparse
+import os, sys, tempfile, subprocess, json, hashlib, argparse, re
 import requests
 
 ## TODO: verify contents of sha256sums.asc
@@ -107,11 +107,15 @@ kernelfiles = os.listdir(storedirectory)
 
 outjson = []
 
+versionre = re.compile('linux-([\w\d\.\-]+).tar.xz$')
+
 for filename in kernelfiles:
 	if 'linux' in filename and 'tar.xz' in filename:
-		if filename in filenametochecksum:
-			outjson.append({'filename': filename, 'checksum': filenametochecksum[filename], 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
-		else:
+		versionres = versionre.match(filename)
+		version = None
+		if versionres != None:
+			version = versionres.groups()[0]
+		if not filename in filenametochecksum:
 			kernelfile = open(os.path.join(storedirectory, filename), 'rb')
 			kerneldata = kernelfile.read()
 			kernelfile.close()
@@ -119,7 +123,7 @@ for filename in kernelfiles:
 			h.update(kerneldata)
 			checksum = h.hexdigest()
 			filenametochecksum[filename] = checksum
-			outjson.append({'filename': filename, 'checksum': checksum, 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
+		outjson.append({'filename': filename, 'sha256': filenametochecksum[filename], 'website': 'https://www.kernel.org/', 'project': 'Linux kernel', 'downloadurl': downloadurls[filename], 'package': 'linux', 'version': version})
 
 ## write JSON to output file
 archivejsonfile = open(os.path.join(storedirectory, 'archives.json'), 'w')
