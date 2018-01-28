@@ -1,0 +1,18 @@
+Scripts used in the OSADL License Compliance Audit: http://lca.osadl.org/
+
+Included in this directory are:
+
+* audit.config -- same configuration file for audit script and database creation script
+* kerneldownload.py -- simple kernel archive downloader
+* osadlaudit.py -- audit script
+* osadldb.py -- database creation script
+* lca.sql -- database table definitions for PostgreSQL
+* README -- this file
+
+Creating the database:
+
+create database osadl;
+create user osadl with password 'osadl';
+grant all privileges on database osadl to osadl;
+
+The database creation script requires PostgreSQL 9.5 or later.
