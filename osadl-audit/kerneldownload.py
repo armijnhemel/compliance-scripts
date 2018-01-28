@@ -29,13 +29,13 @@ if not os.path.isabs(args.storedirectory):
 else:
 	storedirectory = args.storedirectory
 
-baseurl = 'https://cdn.kernel.org/pub/linux/kernel/'
+baseurl = 'https://cdn.kernel.org/pub/linux/kernel'
 
-#kernelsubdirs = ['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v2.0', 'v2.1', 'v2.2', 'v2.3', 'v2.4', 'v2.5', 'v2.6', 'v3.0', 'v3.x', 'v4.x']
-kernelsubdirs = ['v2.4', 'v2.6', 'v3.0', 'v3.x', 'v4.x']
+kernelsubdirs = ['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v2.0', 'v2.1', 'v2.2', 'v2.3', 'v2.4', 'v2.5', 'v2.6', 'v2.6/longterm/v2.6.27', 'v2.6/longterm/v2.6.32', 'v2.6/longterm/v2.6.33', 'v2.6/longterm/v2.6.34', 'v2.6/longterm/v2.6.35', 'v3.0', 'v3.x', 'v4.x']
 
 filenametochecksum = {}
 faileddownloads = set()
+downloadurls = {}
 
 for k in kernelsubdirs:
 	filestofetch = set()
@@ -59,6 +59,8 @@ for k in kernelsubdirs:
 				if 'badsig' in filename:
 					continue
 				filenametochecksum[filename] = checksum
+				kernelurl = "%s/%s/%s" % (baseurl, k, filename)
+				downloadurls[filename] = kernelurl
 				if not os.path.exists(os.path.join(storedirectory, filename)):
 					filestofetch.add(filename)
 
@@ -99,6 +101,8 @@ if os.path.exists(os.path.join(storedirectory, 'archives.json')):
 			else:
 				filenametochecksum[a['filename']] = a['checksum']
 
+print(downloadurls)
+
 ## now write the JSON
 kernelfiles = os.listdir(storedirectory)
 
@@ -107,7 +111,7 @@ outjson = []
 for filename in kernelfiles:
 	if 'linux' in filename and 'tar.xz' in filename:
 		if filename in filenametochecksum:
-			outjson.append({'filename': filename, 'checksum': filenametochecksum[filename]})
+			outjson.append({'filename': filename, 'checksum': checksum, 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
 		else:
 			kernelfile = open(os.path.join(storedirectory, filename), 'rb')
 			kerneldata = kernelfile.read()
@@ -116,8 +120,11 @@ for filename in kernelfiles:
 			h.update(kerneldata)
 			checksum = h.hexdigest()
 			filenametochecksum[filename] = checksum
-			outjson.append({'filename': filename, 'checksum': checksum})
+			outjson.append({'filename': filename, 'checksum': checksum, 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
 
 archivejsonfile = open(os.path.join(storedirectory, 'archives.json'), 'w')
 archivejsonfile.write(json.dumps(outjson))
 archivejsonfile.close()
+
+for i in faileddownloads:
+	print("Failed to download:", i)
