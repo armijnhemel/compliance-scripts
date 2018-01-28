@@ -89,6 +89,7 @@ for k in kernelsubdirs:
 		outfile.flush()
 		outfile.close()
 
+## read information for already downloaded files from an existing archives.json
 if os.path.exists(os.path.join(storedirectory, 'archives.json')):
 	archivejsonfile = open(os.path.join(storedirectory, 'archives.json'))
 	archivejson = json.load(archivejsonfile)
@@ -101,9 +102,7 @@ if os.path.exists(os.path.join(storedirectory, 'archives.json')):
 			else:
 				filenametochecksum[a['filename']] = a['checksum']
 
-print(downloadurls)
-
-## now write the JSON
+## now create the JSON
 kernelfiles = os.listdir(storedirectory)
 
 outjson = []
@@ -111,7 +110,7 @@ outjson = []
 for filename in kernelfiles:
 	if 'linux' in filename and 'tar.xz' in filename:
 		if filename in filenametochecksum:
-			outjson.append({'filename': filename, 'checksum': checksum, 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
+			outjson.append({'filename': filename, 'checksum': filenametochecksum[filename], 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
 		else:
 			kernelfile = open(os.path.join(storedirectory, filename), 'rb')
 			kerneldata = kernelfile.read()
@@ -122,9 +121,11 @@ for filename in kernelfiles:
 			filenametochecksum[filename] = checksum
 			outjson.append({'filename': filename, 'checksum': checksum, 'website': 'https://www.kernel.org/', 'project': 'linux', 'downloadurl': downloadurls[filename]})
 
+## write JSON to output file
 archivejsonfile = open(os.path.join(storedirectory, 'archives.json'), 'w')
 archivejsonfile.write(json.dumps(outjson))
 archivejsonfile.close()
 
+## report on any failed downloads
 for i in faileddownloads:
 	print("Failed to download:", i)
