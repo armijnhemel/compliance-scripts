@@ -56,6 +56,8 @@ for k in kernelsubdirs:
 		if i != None:
 			(checksum, filename) = i.split()
 			if 'linux' in filename and 'tar.xz' in filename:
+				if 'badsig' in filename:
+					continue
 				filenametochecksum[filename] = checksum
 				if not os.path.exists(os.path.join(storedirectory, filename)):
 					filestofetch.add(filename)
@@ -105,7 +107,7 @@ outjson = []
 for filename in kernelfiles:
 	if 'linux' in filename and 'tar.xz' in filename:
 		if filename in filenametochecksum:
-			outjson.append({'filename': filename, 'checksum': checksum})
+			outjson.append({'filename': filename, 'checksum': filenametochecksum[filename]})
 		else:
 			kernelfile = open(os.path.join(storedirectory, filename), 'rb')
 			kerneldata = kernelfile.read()
