@@ -7,6 +7,7 @@ Included in this directory are:
 * osadlaudit.py -- audit script
 * osadldb.py -- database creation script
 * lca.sql -- database table definitions for PostgreSQL
+* lca-drop.sql -- SQL to quickly drop all tables using psql
 * README -- this file
 
 Creating the database:
