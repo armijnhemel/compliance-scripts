@@ -192,6 +192,21 @@ def main(argv):
 				config_settings['postgresql_port'] = config.get(section, 'postgresql_port')
 			except:
 				config_settings['postgresql_port'] = None
+		elif section == 'createdatabase':
+			unpackprefix = None
+			try:
+				unpackprefix = config.get(section, 'unpackdirectory')
+				if not os.path.isabs(unpackprefix):
+					unpackprefix = os.path.normpath(os.path.join(os.getcwd(), unpackprefix))
+				if not os.path.exists(unpackprefix):
+					unpackprefix = None
+			except:
+				pass
+			try:
+				processors = int(config.get(section, 'processors'))
+				cpuamount = max(min(processors, multiprocessing.cpu_count()) - 1, 1)
+			except:
+				cpuamount = max(multiprocessing.cpu_count() - 1, 1)
 
 	if not 'postgresql_user' in config_settings:
 		print("Database configuration information incomplete (postgresql_user)", file=sys.stderr)
@@ -235,12 +250,6 @@ def main(argv):
 
 	processmanager = multiprocessing.Manager()
 
-	## TODO: make configurable
-	cpuamount = max(multiprocessing.cpu_count() - 1, 1)
-
-	## TODO: make configurable
-	unpackprefix = '/home/armijn/tmp'
-
 	## first create a thread that writes results to the database
 	scanqueue = processmanager.JoinableQueue(maxsize=0)
 	reportqueue = processmanager.JoinableQueue(maxsize=0)
@@ -261,6 +270,9 @@ def main(argv):
 
 	scanqueue.join()
 	reportqueue.join()
+
+	## flush db connectio, just in case
+	dbconnection.commit()
 
 	for p in processpool:
 		p.terminate()
