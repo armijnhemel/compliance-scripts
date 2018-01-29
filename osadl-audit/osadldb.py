@@ -36,16 +36,15 @@ def writetodb(dbconn, dbcursor, resultqueue):
 	dbcounter = 0
 	while True:
 		## get data from the result queue
-		res = resultqueue.get()
-		if res['type'] == 'file':
-			dbcursor.execute("insert into fileinfo (packagename, version, fullfilename, filename, checksum) values (%s,%s,%s,%s,%s)", (res['packagename'], res['version'], res['filename'], os.path.basename(res['filename']), res['sha256']))
-			if res['tlshhash'] != None:
-				dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
-			dbcounter += 1
-			if dbcounter % 1000 == 0:
-				dbconn.commit()
-		elif res['type'] == 'archive':
-			dbcursor.execute("insert into archive (packagename, version, archivename, checksum, project, downloadurl, website) values (%s,%s,%s,%s,%s,%s,%s)", (res['package'], res['version'], res['filename'], res['sha256'], res['project'], res['downloadurl'], res['downloadurl']))
+		results = resultqueue.get()
+		if results['type'] == 'file':
+			for res in results['data']:
+				dbcursor.execute("insert into fileinfo (packagename, version, fullfilename, filename, checksum) values (%s,%s,%s,%s,%s)", (res['packagename'], res['version'], res['filename'], os.path.basename(res['filename']), res['sha256']))
+				if res['tlshhash'] != None:
+					dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
+			dbconn.commit()
+		elif results['type'] == 'archive':
+			dbcursor.execute("insert into archive (packagename, version, archivename, checksum, project, downloadurl, website) values (%s,%s,%s,%s,%s,%s,%s)", (results['package'], results['version'], results['filename'], results['sha256'], results['project'], results['downloadurl'], results['downloadurl']))
 			dbconn.commit()
 		resultqueue.task_done()
 
@@ -65,6 +64,8 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 			shutil.rmtree(unpackdirectory)
 			scanqueue.task_done()
 
+		results = []
+		resultcounter = 0
 		dirwalk = os.walk(unpackdirectory)
 		for direntries in dirwalk:
 			## make sure all subdirectories and files can be accessed
@@ -96,7 +97,11 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 					if len(sourcedata) >= 256:
 						tlshhash = tlsh.hash(sourcedata)
 
-				resultqueue.put({'type': 'file', 'filename': fullfilename[unpackdirectorylen:], 'sha256': filehash, 'tlshhash': tlshhash, 'packagename': task['package'], 'version': task['version']})
+				results.append({'filename': fullfilename[unpackdirectorylen:], 'sha256': filehash, 'tlshhash': tlshhash, 'packagename': task['package'], 'version': task['version']})
+				if resultcounter % 10000 == 0:
+					resultqueue.put({'type': 'file', 'data': results})
+					results = []
+		resultqueue.put({'type': 'file', 'data': results})
 
 		shutil.rmtree(unpackdirectory)
 		archiveres = copy.deepcopy(task)
