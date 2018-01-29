@@ -229,7 +229,7 @@ def main(argv):
 
 	## first see if the database is up and running
 	try:
-		dbconnection = psycopg2.connect(database=config_settings['postgresql_db'], user=config_settings['postgresql_user'], password=config_settings['postgresql_password'])
+		dbconnection = psycopg2.connect(database=config_settings['postgresql_db'], user=config_settings['postgresql_user'], password=config_settings['postgresql_password'], port=config_settings['postgresql_port'], host=config_settings['postgresql_host'])
 		dbconnection.close()
 	except:
 		print("Database server not running or malconfigured, exiting.", file=sys.stderr)
@@ -237,7 +237,7 @@ def main(argv):
 
 	## see which files need to be unpacked and processed
 	## first open the database
-	dbconnection = psycopg2.connect(database=config_settings['postgresql_db'], user=config_settings['postgresql_user'], password=config_settings['postgresql_password'])
+	dbconnection = psycopg2.connect(database=config_settings['postgresql_db'], user=config_settings['postgresql_user'], password=config_settings['postgresql_password'], port=config_settings['postgresql_port'], host=config_settings['postgresql_host'])
 	dbcursor = dbconnection.cursor()
 
 	archivemeta = sorted(archivemeta, key=lambda x: x['filename'])
