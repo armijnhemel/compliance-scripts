@@ -19,9 +19,9 @@
 ## * SHA256 checksum
 ## * TLSH (optional)
 
-import sys, os, subprocess, tempfile, hashlib, json, stat, shutil, copy
+import sys, os, subprocess, tempfile, hashlib, json, stat, shutil, copy, time
 import argparse, configparser, multiprocessing
-import psycopg2
+import psycopg2, psycopg2.extras
 
 usetlsh = False
 try:
@@ -32,17 +32,25 @@ except:
 
 ## a thread that takes results and writes them to the database
 def writetodb(dbconn, dbcursor, resultqueue):
+	seensha256 = set()
 	while True:
 		## get data from the result queue
-		results = resultqueue.get()
-		if results['type'] == 'file':
-			for res in results['data']:
-				dbcursor.execute("insert into fileinfo (packagename, version, fullfilename, filename, checksum) values (%s,%s,%s,%s,%s)", (res['packagename'], res['version'], res['filename'], os.path.basename(res['filename']), res['sha256']))
-				if res['tlshhash'] != None:
-					dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
+		(resulttype, results) = resultqueue.get()
+		## first part of the tuple is the type
+		if resulttype == 'file':
+			psycopg2.extras.execute_values(dbcursor, "insert into fileinfo (packagename, version, fullfilename, filename, checksum) values %s", results)
 			dbconn.commit()
-		elif results['type'] == 'archive':
+		elif resulttype == 'archive':
 			dbcursor.execute("insert into archive (packagename, version, archivename, checksum, project, downloadurl, website) values (%s,%s,%s,%s,%s,%s,%s)", (results['package'], results['version'], results['filename'], results['sha256'], results['project'], results['downloadurl'], results['downloadurl']))
+			dbconn.commit()
+			print("Wrote: %s\n" % results['version'])
+			sys.stdout.flush()
+		elif resulttype == 'hashes':
+			for res in results:
+				if not res['sha256'] in seensha256:
+					if res['tlshhash'] != None:
+						dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
+						seensha256.add(res['sha256'])
 			dbconn.commit()
 		resultqueue.task_done()
 
@@ -63,6 +71,7 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 			scanqueue.task_done()
 
 		results = []
+		hashresults = []
 		resultcounter = 0
 		dirwalk = os.walk(unpackdirectory)
 		for direntries in dirwalk:
@@ -94,26 +103,23 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 					## only compute TLSH for files that are 256 bytes are more
 					if len(sourcedata) >= 256:
 						tlshhash = tlsh.hash(sourcedata)
+						hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
 
-				results.append({'filename': fullfilename[unpackdirectorylen:], 'sha256': filehash, 'tlshhash': tlshhash, 'packagename': task['package'], 'version': task['version']})
-				if resultcounter % 10000 == 0:
-					resultqueue.put({'type': 'file', 'data': results})
+				results.append((task['package'], task['version'], fullfilename[unpackdirectorylen:], os.path.basename(fullfilename), filehash))
+				resultcounter += 1
+				if resultcounter % 1000 == 0:
+					resultqueue.put(('file', results))
 					results = []
-		resultqueue.put({'type': 'file', 'data': results})
+		resultqueue.put(('file', results))
+
+		if hashresults != []:
+			resultqueue.put(('hashes', hashresults))
 
 		shutil.rmtree(unpackdirectory)
-		archiveres = copy.deepcopy(task)
-		archiveres['type'] = 'archive'
-		resultqueue.put(archiveres)
+		resultqueue.put(('archive', copy.deepcopy(task)))
+		print("Queued\n", task['version'])
+		sys.stdout.flush()
 		scanqueue.task_done()
-
-## a convenience method to unpack a Linux kernel tarball into a temporary
-## directory. The return value is the directory in which the data was
-## unpacked.
-def unpack_tarball(pathname, temporary_prefix=None):
-	## first create a temporary directory
-	unpackdirectory = tempfile.mkdtemp(dir=temporary_prefix)
-	pass
 
 def main(argv):
 	parser = argparse.ArgumentParser()
