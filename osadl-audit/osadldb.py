@@ -32,8 +32,6 @@ except:
 
 ## a thread that takes results and writes them to the database
 def writetodb(dbconn, dbcursor, resultqueue):
-	## cache some results
-	dbcounter = 0
 	while True:
 		## get data from the result queue
 		results = resultqueue.get()
