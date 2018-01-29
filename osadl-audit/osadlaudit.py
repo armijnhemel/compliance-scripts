@@ -52,7 +52,7 @@ def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 			scanqueue.task_done()
 			continue
 		
-		mostpromising = None
+		mostpromising = []
 		minhash = sys.maxsize
 		for candidate in candidates:
 			cursor.execute("select tlsh from hashes where sha256=%s", candidate)
@@ -62,12 +62,16 @@ def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 			tlshdiff = tlsh.diff(tlshhash, tlshresult[0])
 			if tlshdiff < minhash:
 				minhash = tlshdiff
-				mostpromising = candidate[0]
-		if mostpromising != None:
+				mostpromising = [candidate[0]]
+			elif tlshdiff == minhash:
+				mostpromising.append(candidate[0])
+		if mostpromising != []:
 			if minhash < tlshcutoff:
-				cursor.execute("select packagename, version, fullfilename from fileinfo where checksum=%s", (mostpromising,))
-				candidates = cursor.fetchall()
-				conn.commit()
+				candidates = []
+				for m in mostpromising:
+					cursor.execute("select packagename, version, fullfilename from fileinfo where checksum=%s", (m,))
+					candidates += cursor.fetchall()
+					conn.commit()
 				reportqueue.put((directory, filename, candidates, minhash))
 		scanqueue.task_done()
 
@@ -353,7 +357,7 @@ def main(argv):
 		while True:
 			try:
 				tlshresult = reportqueue.get_nowait()
-				print("CLOSEST CANDIDATES FOR FILE %s WITH DISTANCE %d:" % (os.path.join(tlshresult[0], tlshresult[1]), tlshresult[3]))
+				print("CLOSEST %d CANDIDATES FOR FILE %s WITH DISTANCE %d:" % (len(tlshresult[2]), os.path.join(tlshresult[0], tlshresult[1]), tlshresult[3]))
 				for candidate in tlshresult[2]:
 					print("\tPACKAGE %s, VERSION %s, FILE %s" % candidate)
 				print()
