@@ -69,6 +69,7 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 		if p.returncode != 0:
 			shutil.rmtree(unpackdirectory)
 			scanqueue.task_done()
+			continue
 
 		results = []
 		hashresults = []
