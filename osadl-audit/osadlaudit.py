@@ -207,7 +207,29 @@ def main(argv):
 				tlshcutoff = int(config.get(section, 'tlshcutoff').strip())
 			except:
 				tlshcutoff = 200
+			try:
+				nomossapath = config.get(section, 'nomossapath')
+				## check if nomossa exists
+				if not os.path.exists(nomossapath):
+					nomossapath = None
+			except:
+				nomossapath = None
+			try:
+				scancodepath = config.get(section, 'scancodepath')
+				## check if scancode exists
+				if not os.path.exists(scancodepath):
+					scancodepath = None
+			except:
+				scancodepath = None
 	configfile.close()
+
+	if scanlicense:
+		if nomossapath == None:
+			print("WARNING: License scanning enabled but no valid path for Nomos declared!!\n", file=sys.stderr)
+			scanlicense = False
+		if scancodepath == None:
+			print("WARNING: License scanning enabled but no valid path for ScanCode declared!!\n", file=sys.stderr)
+			scanlicense = False
 
 	## sanity checks for the database
 	try:
@@ -398,8 +420,6 @@ def main(argv):
 			## filehash, filedir, filename
 			scanqueue.put(i)
 
-		nomossapath = '/home/armijn/git/fossology/src/nomos/agent/nomossa'
-		scancodepath = '/home/armijn/git/scancode-toolkit/scancode'
 		## create a number of processes to scan files
 		for i in range(0,number_of_processors):
 			p = multiprocessing.Process(target=runlicensescanner, args=(scanqueue,reportqueue, scancodepath, nomossapath))
