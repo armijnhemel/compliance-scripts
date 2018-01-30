@@ -1,5 +1,11 @@
 Scripts used in the OSADL License Compliance Audit: http://lca.osadl.org/
 
+These scripts perform a "delta scan" and focuses just on the files that cannot be found in files that are in the database. The database is made from official tarballs downloaded from www.kernel.org of the "regular" and "stable" kernel releases. In the future other releases (RT, LTSI) might be added too.
+
+It is assumed that files that are in the kernel.org upstream have been looked at enough by many people. By focusing on just the delta the amount of files that need to be looked at is typically in the low hundreds instead of thousands.
+
+A more depth description can be found here: https://lwn.net/Articles/552758/
+
 Included in this directory are:
 
 * audit.config -- same configuration file for audit script and database creation script
