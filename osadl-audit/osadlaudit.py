@@ -221,6 +221,10 @@ def main(argv):
 					scancodepath = None
 			except:
 				scancodepath = None
+			try:
+				processors = min(int(config.get(section, 'processors')), multiprocessing.cpu_count())
+			except:
+				processors = multiprocessing.cpu_count()
 	configfile.close()
 
 	if scanlicense:
@@ -310,14 +314,12 @@ def main(argv):
 		print("SCANNING %d files" % len(filestoscan))
 		sys.stdout.flush()
 
-	number_of_processors = multiprocessing.cpu_count()
-
 	## keep a list of postgresql connections and cursors, for use in separate threads
 	postgresql_conns = []
 	postgresql_cursors = []
 
 	## create a bunch of PostgreSQL connections and cursors
-	for i in range(0,number_of_processors):
+	for i in range(0,processors):
 		c = psycopg2.connect(database=postgresql_db, user=postgresql_user, password=postgresql_password, port=postgresql_port, host=postgresql_host)
 		cursor = c.cursor()
 		postgresql_conns.append(c)
@@ -333,7 +335,7 @@ def main(argv):
 		scanqueue.put(i)
 
 	## create a number of processes to scan files
-	for i in range(0,number_of_processors):
+	for i in range(0,processors):
 		p = multiprocessing.Process(target=scanfiles, args=(scanqueue,reportqueue, postgresql_cursors[i], postgresql_conns[i]))
 		processes.append(p)
 
@@ -379,7 +381,7 @@ def main(argv):
 			scanqueue.put(i)
 
 		## create a number of processes to scan files
-		for i in range(0,number_of_processors):
+		for i in range(0,processors):
 			p = multiprocessing.Process(target=scantlsh, args=(scanqueue,reportqueue, postgresql_cursors[i], postgresql_conns[i], tlshcutoff))
 			processes.append(p)
 
@@ -421,7 +423,7 @@ def main(argv):
 			scanqueue.put(i)
 
 		## create a number of processes to scan files
-		for i in range(0,number_of_processors):
+		for i in range(0,processors):
 			p = multiprocessing.Process(target=runlicensescanner, args=(scanqueue,reportqueue, scancodepath, nomossapath))
 			processes.append(p)
 
