@@ -12,8 +12,32 @@ Included in this directory are:
 
 Creating the database:
 
+The database creation script requires PostgreSQL 9.5 or later and a recent psycopg2.
+
+1. install PostgreSQL. This is outside of the scope of this document.
+
+2. create a database and a user, for example:
+
 create database osadl;
 create user osadl with password 'osadl';
 grant all privileges on database osadl to osadl;
 
-The database creation script requires PostgreSQL 9.5 or later.
+Populating the database:
+
+This step is not needed if a prefab database is used (available from OSADL for OSADL members).
+
+1. download the Linux kernel source code releases (only tar.xz files are downloaded), or use a previously downloaded collection of downloaded sources. For both the "kerneldownload.py" script should be used to generate the correct metadata that is used:
+
+$ python3 kerneldownload.py -d /path/to/directory/with/tarballs
+
+2. un the "osadldb.py" script. This script uses a configuration file. An example with some default values and their explanations can be found in "audit.config". The settings relevant to the database creation are in the [createdatabase] section.
+
+$ python3 osadldb.py -d /path/to/directory/with/tarballs -c /path/to/configuration/file
+
+This problem is I/O bound.
+
+Running the audit script:
+
+The audit script uses a configuration file. An example with some default values and their explanations can be found in "audit.config". The settings relevant to the audt are in the "audit" section.
+
+$ python3 osadlaudit -s /path/to/directory/with/sources/to/scan -c /path/to/configuration/file
