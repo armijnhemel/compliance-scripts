@@ -15,7 +15,7 @@ If configured it will also compute distances using TLSH to find the closest file
 in the database (filename based).
 '''
 
-import os, os.path, sys, hashlib, subprocess, stat, tempfile, psycopg2
+import os, os.path, sys, hashlib, subprocess, stat, tempfile, psycopg2, json
 import magic, configparser, argparse
 import multiprocessing, queue
 
@@ -75,22 +75,34 @@ def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 				reportqueue.put((directory, filename, candidates, minhash))
 		scanqueue.task_done()
 
-'''
 ## run Scancode and fossology scans here
-def licensescan((filehash, filedir, filename)):
-	scancoderes = set()
-	fossologyres = set()
+def runlicensescanner(scanqueue, reportqueue, scancodepath, nomossapath):
+	while True:
+		(filedir, filename, filehash) = scanqueue.get()
+		scancoderes = set()
+		fossologyres = set()
 
-	## Also run the stand alone Nomos scanner from FOSSology. This requires FOSSology 2.4 or later.
-	p = subprocess.Popen(["/usr/share/fossology/nomos/agent/nomossa", "%s/%s" % (filedir, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-	(stanout, stanerr) = p.communicate()
-	fosslines = stanout.strip().split("\n")
-	for j in range(0,len(fosslines)):
-		fossysplit = fosslines[j].strip().rsplit(" ", 1)
-		licenses = fossysplit[-1].split(',')
-		fossologyres.update(licenses)
-	return (filehash, filedir, filename, scancoderes, fossologyres)
-'''
+		## Run Scancode
+		p = subprocess.Popen([scancodepath, '--quiet', os.path.join(filedir, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		(stanout, stanerr) = p.communicate()
+		scancodejson = json.loads(stanout)
+		for f in scancodejson['files']:
+			if 'licenses' in f:
+				for l in f['licenses']:
+					if 'spdx_license_key' in l:
+						scancoderes.add(l['spdx_license_key'])
+
+		## Also run the stand alone Nomos scanner from FOSSology. This requires FOSSology 2.4 or later.
+		p = subprocess.Popen([nomossapath, os.path.join(filedir, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		(stanout, stanerr) = p.communicate()
+		stanout = stanout.decode('utf-8')
+		fosslines = stanout.strip().split('\n')
+		for j in range(0,len(fosslines)):
+			fossysplit = fosslines[j].strip().rsplit(" ", 1)
+			licenses = fossysplit[-1].split(',')
+			fossologyres.update(licenses)
+		reportqueue.put((filedir, filename, filehash, scancoderes, fossologyres))
+		scanqueue.task_done()
 
 ## scan the files to find the files that cannot be found in the database
 def scanfiles(scanqueue, reportqueue, cursor, conn):
@@ -376,7 +388,42 @@ def main(argv):
 		if verbose:
 			print("DETERMINING LICENSE OF FILES NOT FOUND")
 			sys.stdout.flush()
-		notfoundfiles = map(lambda x: x + ([], []), notfoundfiles)
+
+		## create new queues....again
+		scanqueue = scanmanager.JoinableQueue(maxsize=0)
+		reportqueue = scanmanager.JoinableQueue(maxsize=0)
+		processes = []
+
+		for i in notfoundfiles:
+			## filehash, filedir, filename
+			scanqueue.put(i)
+
+		nomossapath = '/home/armijn/git/fossology/src/nomos/agent/nomossa'
+		scancodepath = '/home/armijn/git/scancode-toolkit/scancode'
+		## create a number of processes to scan files
+		for i in range(0,number_of_processors):
+			p = multiprocessing.Process(target=runlicensescanner, args=(scanqueue,reportqueue, scancodepath, nomossapath))
+			processes.append(p)
+
+		for p in processes:
+			p.start()
+
+		scanqueue.join()
+		notfoundfiles = []
+		while True:
+			try:
+				scanresult = reportqueue.get_nowait()
+				notfoundfiles.append(scanresult)
+				reportqueue.task_done()
+			except queue.Empty:
+				## Queue is empty
+				break
+
+		reportqueue.join()
+
+		## terminate the processes
+		for p in processes:
+			p.terminate()
 	else:
 		notfoundfiles = map(lambda x: x + ([], []), notfoundfiles)
 
