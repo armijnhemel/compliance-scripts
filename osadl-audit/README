@@ -10,6 +10,18 @@ Included in this directory are:
 * lca-drop.sql -- SQL to quickly drop all tables using psql
 * README -- this file
 
+A few dependencies are needed:
+    * tlsh (optional)
+    * requests (optional, just for downloader script)
+    * ScanCode
+    * FOSSology (uses "nomossa", the standalone Nomos scanner for people who do not want to install/use/configure all of FOSSology. This can easily be replaced by the path of the regular "nomos" if there is already an existing FOSSology installation)
+
+Installing ScanCode:
+
+1. git clone https://github.com/nexB/scancode-toolkit
+2. run the scancode program once so it self-configures
+3. add the path of the scancode program to the configuration file (example: "audit.config")
+
 Creating the database:
 
 The database creation script requires PostgreSQL 9.5 or later and a recent psycopg2.
