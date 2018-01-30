@@ -1,1 +1,4 @@
 This repository contains a collection of experimental license compliance scripts. They are not intended to be used in a production environment, but are there to explore possible solutions to license compliance issues.
+
+* copyright-statements - experimental copyright statement printer, based on output of ScanCode
+* osadl-audit - scripts used for the OSADL License Compliance Audit (LCA)
