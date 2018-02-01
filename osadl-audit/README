@@ -40,6 +40,10 @@ create database osadl;
 create user osadl with password 'osadl';
 grant all privileges on database osadl to osadl;
 
+3. create the database tables. These are defined in the file "lca.sql" and can be loaded into the database as follows:
+
+$ psql -U osadl < lca.sql
+
 Populating the database:
 
 This step is not needed if a prefab database is used (available from OSADL for OSADL members).
@@ -48,11 +52,11 @@ This step is not needed if a prefab database is used (available from OSADL for O
 
 $ python3 kerneldownload.py -d /path/to/directory/with/tarballs
 
-2. un the "osadldb.py" script. This script uses a configuration file. An example with some default values and their explanations can be found in "audit.config". The settings relevant to the database creation are in the [createdatabase] section.
+2. run the "osadldb.py" script. This script uses a configuration file. An example with some default values and their explanations can be found in "audit.config". The settings relevant to the database creation are in the [createdatabase] section.
 
 $ python3 osadldb.py -d /path/to/directory/with/tarballs -c /path/to/configuration/file
 
-This problem is I/O bound.
+This problem is I/O bound and unpacking on SSD or (even better) ramdisk will very significantly speed up processing the tarballs. Using ramdisk having 7 threads unpacking and 1 thread writing data to the database is not a problem at all.
 
 Running the audit script:
 
