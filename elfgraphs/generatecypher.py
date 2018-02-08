@@ -129,7 +129,7 @@ def main(argv):
 	## store the length of the top level directory, as everything
 	## will be relative to it and the graph should be free of
 	## hardcoded paths.
-	topdirlength = len(dirtoscan)+1
+	topdirlength = len(dirtoscan)
 
 	dirwalker = os.walk(dirtoscan)
 
