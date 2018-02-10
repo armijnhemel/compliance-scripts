@@ -2,3 +2,5 @@ This repository contains a collection of experimental license compliance scripts
 
 * copyright-statements - experimental copyright statement printer, based on output of ScanCode
 * osadl-audit - scripts used for the OSADL License Compliance Audit (LCA)
+* elfgraphs - experimental scripts to generate ELF linking graphs in Cypher to load into Neo4J
+* sourcetreeverifier - experimental scripts to verify unpacked source code release archives
