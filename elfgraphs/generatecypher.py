@@ -207,6 +207,7 @@ def main(argv):
 	
 			## statically linked binary, not interesting for now
 			if not dynamicelf:
+				openedelffile.close()
 				continue
 
 			## now split the files according to their architecture, class
