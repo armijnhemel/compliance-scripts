@@ -20,7 +20,7 @@
 ## * TLSH (optional)
 
 import sys, os, subprocess, tempfile, hashlib, json, stat, shutil, copy, time
-import argparse, configparser, multiprocessing, tarfile
+import argparse, configparser, multiprocessing, tarfile, json
 import psycopg2, psycopg2.extras
 
 usetlsh = False
@@ -57,10 +57,43 @@ def writetodb(dbconn, dbcursor, resultqueue):
 		resultqueue.task_done()
 
 ## a thread to unpack an archive and compute checksums for files
-def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
+def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cacheresult, cachedir):
 	while True:
 		## grab a new task
 		task = scanqueue.get()
+
+		## first check if there are already results available and read those instead
+		if cacheresult:
+			kernelresultfilename = os.path.join(cachedir, "%s.json" % task['sha256'])
+			if os.path.exists(kernelresultfilename):
+				kernelresultfile = open(kernelresultfilename, 'r')
+				kernelresults = json.load(kernelresultfile)
+				kernelresultfile.close()
+
+				## split the results
+				results = []
+				hashresults = []
+				for f in kernelresults:
+					fullfilename = f['fullfilename']
+					relativefilename = f['relativefilename']
+					filehash = f['sha256']
+					results.append((task['package'], task['version'], fullfilename, relativefilename, os.path.basename(fullfilename), filehash))
+					if 'tlshhash' in f:
+						hashresults.append({'sha256': filehash, 'tlshhash': f['tlshhash']})
+
+				## send results to the database
+				resultqueue.put(('file', results))
+				resultqueue.put(('hashes', hashresults))
+
+				print("Queued\n", task['version'])
+				sys.stdout.flush()
+
+				## send the results for the archive to the database
+				resultqueue.put(('archive', copy.deepcopy(task)))
+
+				## tell the queue the task is done
+				scanqueue.task_done()
+				continue
 
 		## create a temporary directory
 		unpackdirectory = tempfile.mkdtemp(dir=unpackprefix)
@@ -87,6 +120,8 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 		results = []
 		hashresults = []
 		resultcounter = 0
+
+		cacheresults = []
 
 		## check to see whether or not part the path should be removed first
 		## before storing as "relativefilename"
@@ -131,14 +166,22 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 				h.update(sourcedata)
 				filehash = h.hexdigest()
 				tlshhash = None
+
+				results.append((task['package'], task['version'], fullfilename[unpackdirectorylen:], fullfilename[removetopdirlen:], os.path.basename(fullfilename), filehash))
+				if cacheresult:
+					tmpresult = {'sha256': filehash, 'fullfilename': fullfilename[unpackdirectorylen:], 'relativefilename': fullfilename[removetopdirlen:]}
+
 				if usetlsh:
 					## only compute TLSH for files that are 256 bytes are more
 					if len(sourcedata) >= 256:
 						tlshhash = tlsh.hash(sourcedata)
+						if cacheresult:
+							tmpresult['tlshhash'] = tlshhash
+
+				if cacheresult:
+					cacheresults.append(tmpresult)
 
 				hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
-
-				results.append((task['package'], task['version'], fullfilename[unpackdirectorylen:], fullfilename[removetopdirlen:], os.path.basename(fullfilename), filehash))
 
 				## send intermediate results to the database, per 1000 files
 				resultcounter += 1
@@ -163,6 +206,11 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 
 		## send the results for the archive to the database
 		resultqueue.put(('archive', copy.deepcopy(task)))
+
+		if cacheresult:
+			jsondumpfile = open(os.path.join(cachedir, "%s.json" % task['sha256']), 'w')
+			json.dump(cacheresults, jsondumpfile)
+			jsondumpfile.close()
 
 		## tell the queue the task is done
 		scanqueue.task_done()
@@ -248,6 +296,9 @@ def main(argv):
 			except:
 				config_settings['postgresql_port'] = None
 		elif section == 'createdatabase':
+			cacheresult = False
+			cachedir = None
+
 			unpackprefix = None
 			try:
 				unpackprefix = config.get(section, 'unpackdirectory')
@@ -263,6 +314,27 @@ def main(argv):
 			except:
 				cpuamount = max(multiprocessing.cpu_count() - 1, 1)
 
+			try:
+				cacheres = config.get(section, 'cacheresults')
+				if cacheres == 'yes':
+					cacheresult = True
+			except:
+				cacheresult = False
+			try:
+				cachedirectory = config.get(section, 'cachedirectory')
+				if os.path.isdir(cachedirectory):
+					## write a test file to see if the directory is writable
+					testfile = tempfile.mkstemp(dir=cachedirectory)
+					os.fdopen(testfile[0]).close()
+					## remove the test file
+					os.unlink(testfile[1])
+					cachedir = cachedirectory
+			except:
+				## something happened, so don't do anything
+				pass
+
+	if cacheresult and cachedir == None:
+		cacheresult = False
 	if not 'postgresql_user' in config_settings:
 		print("Database configuration information incomplete (postgresql_user)", file=sys.stderr)
 		sys.exit(1)
@@ -316,7 +388,7 @@ def main(argv):
 
 	## create processes for unpacking archives
 	for i in range(0,cpuamount):
-		p = multiprocessing.Process(target=processarchive, args=(scanqueue, reportqueue, scandirectory, unpackprefix))
+		p = multiprocessing.Process(target=processarchive, args=(scanqueue, reportqueue, scandirectory, unpackprefix, cacheresult, cachedir))
 		processpool.append(p)
 
 	## create one process to write to the database
