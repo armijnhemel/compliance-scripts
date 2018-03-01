@@ -63,7 +63,7 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 		task = scanqueue.get()
 
 		jsonsuccess = False
-		## first check if there are already results available and read those instead
+		## first check if there are already results available and use those instead
 		if cacheresult:
 			kernelresultfilename = os.path.join(cachedir, "%s.json" % task['sha256'])
 			if os.path.exists(kernelresultfilename):
