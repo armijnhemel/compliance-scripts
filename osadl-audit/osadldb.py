@@ -54,21 +54,30 @@ def writetodb(dbconn, dbcursor, resultqueue):
 			dbconn.commit()
 		resultqueue.task_done()
 
-## a thread to unpack an archive and walk results
+## a thread to unpack an archive and compute checksums for files
 def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 	while True:
+		## grab a new task
 		task = scanqueue.get()
+
+		## create a temporary directory
 		unpackdirectory = tempfile.mkdtemp(dir=unpackprefix)
+
+		## store the length of the temporary directory so it can be properly
+		## cut from the data that is being stored. Add 1 for the '/' of the path
 		unpackdirectorylen = len(unpackdirectory) + 1
-		## then for each file:
+
+		## For each archive:
 		## 1. unpack the archive
-		## 2. compute hashes
+		## 2. compute hashes for each file found in the archive
 		## 3. report results
 		try:
 			sourcetar = tarfile.open(os.path.join(sourcesdirectory, task['filename']), 'r')
 			sourcetar.extractall(path=unpackdirectory)
 			sourcetar.close()
 		except:
+			## tar file could not be unpacked, so stop
+			## TODO: add support for ZIP files
 			shutil.rmtree(unpackdirectory)
 			scanqueue.task_done()
 			continue
@@ -76,7 +85,6 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 		results = []
 		hashresults = []
 		resultcounter = 0
-		dirwalk = os.walk(unpackdirectory)
 
 		## check to see whether or not part the path should be removed first
 		## before storing as "relativefilename"
@@ -94,6 +102,9 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 			if removetopdir:
 				removetopdirlen += len(topdir) + 1
 
+		## walk the directory
+		dirwalk = os.walk(unpackdirectory)
+
 		for direntries in dirwalk:
 			## make sure all subdirectories and files can be accessed
 			for subdir in direntries[1]:
@@ -104,7 +115,6 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 				fullfilename = os.path.join(direntries[0], filename)
 				if not os.path.islink(fullfilename):
 					os.chmod(fullfilename, stat.S_IRUSR|stat.S_IWUSR|stat.S_IXUSR)
-
 
 				## now read the contents of the file
 				try:
@@ -123,20 +133,32 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 					## only compute TLSH for files that are 256 bytes are more
 					if len(sourcedata) >= 256:
 						tlshhash = tlsh.hash(sourcedata)
-						hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
+
+				hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
 
 				results.append((task['package'], task['version'], fullfilename[unpackdirectorylen:], fullfilename[removetopdirlen:], os.path.basename(fullfilename), filehash))
+
+				## send intermediate results to the database, per 1000 files
 				resultcounter += 1
 				if resultcounter % 1000 == 0:
 					resultqueue.put(('file', results))
+					resultqueue.put(('hashes', hashresults))
 					results = []
+					hashresults = []
+
+		## send remaining results to the database
 		resultqueue.put(('file', results))
 
+		## send remaining results to the database
 		if hashresults != []:
 			resultqueue.put(('hashes', hashresults))
 
-		shutil.rmtree(unpackdirectory)
+		## send the results for the archive to the database
 		resultqueue.put(('archive', copy.deepcopy(task)))
+
+		## remove the unpacking directory
+		shutil.rmtree(unpackdirectory)
+
 		print("Queued\n", task['version'])
 		sys.stdout.flush()
 		scanqueue.task_done()
@@ -260,6 +282,7 @@ def main(argv):
 	dbconnection = psycopg2.connect(database=config_settings['postgresql_db'], user=config_settings['postgresql_user'], password=config_settings['postgresql_password'], port=config_settings['postgresql_port'], host=config_settings['postgresql_host'])
 	dbcursor = dbconnection.cursor()
 
+	## sort the metadata by filename. This is mostly cosmetic.
 	archivemeta = sorted(archivemeta, key=lambda x: x['filename'])
 
 	archivestoprocess = []
