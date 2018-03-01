@@ -38,7 +38,7 @@ def writetodb(dbconn, dbcursor, resultqueue):
 		(resulttype, results) = resultqueue.get()
 		## first part of the tuple is the type
 		if resulttype == 'file':
-			psycopg2.extras.execute_values(dbcursor, "insert into fileinfo (packagename, version, fullfilename, filename, checksum) values %s", results)
+			psycopg2.extras.execute_values(dbcursor, "insert into fileinfo (packagename, version, fullfilename, relativefilename, filename, checksum) values %s", results)
 			dbconn.commit()
 		elif resulttype == 'archive':
 			dbcursor.execute("insert into archive (packagename, version, archivename, checksum, project, downloadurl, website) values (%s,%s,%s,%s,%s,%s,%s)", (results['package'], results['version'], results['filename'], results['sha256'], results['project'], results['downloadurl'], results['downloadurl']))
@@ -77,6 +77,23 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 		hashresults = []
 		resultcounter = 0
 		dirwalk = os.walk(unpackdirectory)
+
+		## check to see whether or not part the path should be removed first
+		## before storing as "relativefilename"
+		removetopdirlen = unpackdirectorylen
+		removetopdir = False
+		if len(os.listdir(unpackdirectory)) == 1:
+			topdir = os.listdir(unpackdirectory)[0]
+			if topdir == task['package']:
+				removetopdir = True
+			else:
+				for i in ['-', ',', '_', ' ']:
+					if topdir == "%s%s%s" % (task['package'], i, task['version']):
+						removetopdir = True
+						break
+			if removetopdir:
+				removetopdirlen += len(topdir) + 1
+
 		for direntries in dirwalk:
 			## make sure all subdirectories and files can be accessed
 			for subdir in direntries[1]:
@@ -108,7 +125,7 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 						tlshhash = tlsh.hash(sourcedata)
 						hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
 
-				results.append((task['package'], task['version'], fullfilename[unpackdirectorylen:], os.path.basename(fullfilename), filehash))
+				results.append((task['package'], task['version'], fullfilename[unpackdirectorylen:], fullfilename[removetopdirlen:], os.path.basename(fullfilename), filehash))
 				resultcounter += 1
 				if resultcounter % 1000 == 0:
 					resultqueue.put(('file', results))
