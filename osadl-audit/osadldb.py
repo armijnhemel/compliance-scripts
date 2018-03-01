@@ -48,6 +48,8 @@ def writetodb(dbconn, dbcursor, resultqueue):
 		elif resulttype == 'hashes':
 			for res in results:
 				if not res['sha256'] in seensha256:
+					## ignore entries without TLSH hashes for now, as they wouldn't matter for matching
+					## and the checksum has already been recorded in 'fileinfo'
 					if res['tlshhash'] != None:
 						dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
 						seensha256.add(res['sha256'])
