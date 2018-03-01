@@ -62,14 +62,25 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 		## grab a new task
 		task = scanqueue.get()
 
+		jsonsuccess = False
 		## first check if there are already results available and read those instead
 		if cacheresult:
 			kernelresultfilename = os.path.join(cachedir, "%s.json" % task['sha256'])
 			if os.path.exists(kernelresultfilename):
 				kernelresultfile = open(kernelresultfilename, 'r')
-				kernelresults = json.load(kernelresultfile)
+				try:
+					kernelresults = json.load(kernelresultfile)
+					jsonsuccess = True
+				except:
+					## corrupt file
+					kernelresultfile.close()
+					try:
+						os.unlink(kernelresultfilename)
+					except:
+						pass
 				kernelresultfile.close()
 
+		if cacheresult and jsonsuccess:
 				## split the results
 				results = []
 				hashresults = []
