@@ -155,14 +155,16 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 		if hashresults != []:
 			resultqueue.put(('hashes', hashresults))
 
-		## send the results for the archive to the database
-		resultqueue.put(('archive', copy.deepcopy(task)))
-
 		## remove the unpacking directory
 		shutil.rmtree(unpackdirectory)
 
 		print("Queued\n", task['version'])
 		sys.stdout.flush()
+
+		## send the results for the archive to the database
+		resultqueue.put(('archive', copy.deepcopy(task)))
+
+		## tell the queue the task is done
 		scanqueue.task_done()
 
 def main(argv):
