@@ -20,7 +20,7 @@
 ## * TLSH (optional)
 
 import sys, os, subprocess, tempfile, hashlib, json, stat, shutil, copy, time
-import argparse, configparser, multiprocessing
+import argparse, configparser, multiprocessing, tarfile
 import psycopg2, psycopg2.extras
 
 usetlsh = False
@@ -64,9 +64,11 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix):
 		## 1. unpack the archive
 		## 2. compute hashes
 		## 3. report results
-		p = subprocess.Popen(['tar', 'ixf', os.path.join(sourcesdirectory, task['filename'])], stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=unpackdirectory)
-		p.communicate()
-		if p.returncode != 0:
+		try:
+			sourcetar = tarfile.open(os.path.join(sourcesdirectory, task['filename']), 'r')
+			sourcetar.extractall(path=unpackdirectory)
+			sourcetar.close()
+		except:
 			shutil.rmtree(unpackdirectory)
 			scanqueue.task_done()
 			continue
@@ -268,22 +270,26 @@ def main(argv):
 	for i in archivestoprocess:
 		scanqueue.put(i)
 
+	## create processes for unpacking archives
 	for i in range(0,cpuamount):
 		p = multiprocessing.Process(target=processarchive, args=(scanqueue, reportqueue, scandirectory, unpackprefix))
 		processpool.append(p)
 
+	## create one process to write to the database
 	r = multiprocessing.Process(target=writetodb, args=(dbconnection, dbcursor, reportqueue))
 	processpool.append(r)
 
+	## start all the processes
 	for p in processpool:
 		p.start()
 
 	scanqueue.join()
 	reportqueue.join()
 
-	## flush db connectio, just in case
+	## flush db connection, just in case
 	dbconnection.commit()
 
+	## terminate all the old processes
 	for p in processpool:
 		p.terminate()
 
