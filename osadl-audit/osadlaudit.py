@@ -26,13 +26,15 @@ try:
 except:
 	pass
 
-## compute TLSH
+## compute TLSH and return the most promising hits in the database
 def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 	while True:
+		## first get the data for a file for which a close match
+		## needs to be compute.
 		(directory, filename, sha256) = scanqueue.get()
 
 		## then compute the TLSH hash and search in the database
-		## for the closest file.
+		## for the closest files.
 		tlshfile = open(os.path.join(directory, filename), 'rb')
 		tlshdata = tlshfile.read()
 		tlshfile.close()
@@ -44,7 +46,7 @@ def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 			scanqueue.task_done()
 			continue
 
-		## now get some cadidates
+		## now get checksums for files with the exact same name
 		cursor.execute("select distinct checksum from fileinfo where filename=%s", (filename,))
 		candidates = cursor.fetchall()
 		conn.commit()
@@ -52,19 +54,32 @@ def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 			scanqueue.task_done()
 			continue
 		
+		## keep the most promising files in a list
 		mostpromising = []
+
+		## first set the value for the found hash very high
 		minhash = sys.maxsize
+
 		for candidate in candidates:
+			## first grab the TLSH value from the database
 			cursor.execute("select tlsh from hashes where sha256=%s", candidate)
 			tlshresult = cursor.fetchone()
 			if tlshresult == None:
 				continue
+
+			## compute the difference with the TLSH value computed above
+			## if the distance is smaller than the distance of the current
+			## best hit, then this will be the new best hit. If it is the
+			## same it is added to the list of best matches.
 			tlshdiff = tlsh.diff(tlshhash, tlshresult[0])
 			if tlshdiff < minhash:
 				minhash = tlshdiff
 				mostpromising = [candidate[0]]
 			elif tlshdiff == minhash:
 				mostpromising.append(candidate[0])
+
+		## if there are promising files and they aren't below a specific TLSH threshold
+		## return the information associated with these files.
 		if mostpromising != []:
 			if minhash < tlshcutoff:
 				candidates = []
@@ -75,7 +90,7 @@ def scantlsh(scanqueue, reportqueue, cursor, conn, tlshcutoff):
 				reportqueue.put((directory, filename, candidates, minhash))
 		scanqueue.task_done()
 
-## run Scancode and fossology scans here
+## run Scancode and FOSSology scans here
 def runlicensescanner(scanqueue, reportqueue, scancodepath, nomossapath):
 	while True:
 		(filedir, filename, filehash) = scanqueue.get()
