@@ -11,7 +11,7 @@
 ##    b) symbols defined by the ELF files (including visibility, type and binding)
 ##    c) symbols exported by the ELF files (including binding, type, and so on)
 ##    d) dependencies declared in dynamically linked files, possibly indirect (symbolic links)
-## 
+##
 ## 2. for each group of binaries (architecture, endianness, etc.) it will then generate a
 ##    Cypher file with all the information from 1.
 ##
@@ -204,7 +204,7 @@ def main(argv):
 				if isinstance(sec, elftools.elf.dynamic.DynamicSection):
 					dynamicelf = True
 					break
-	
+
 			## statically linked binary, not interesting for now
 			if not dynamicelf:
 				openedelffile.close()
