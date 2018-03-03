@@ -57,7 +57,7 @@ def writetodb(dbconn, dbcursor, resultqueue):
 		resultqueue.task_done()
 
 ## a thread to unpack an archive and compute checksums for files
-def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cacheresult, cachedir):
+def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cacheresult, cachedir, processsleep):
 	while True:
 		## grab a new task
 		task = scanqueue.get()
@@ -110,6 +110,9 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 
 				## send the results for the archive to the database
 				resultqueue.put(('archive', copy.deepcopy(task)))
+
+				if processsleep > 0:
+					time.sleep(processsleep)
 
 				## tell the queue the task is done
 				scanqueue.task_done()
@@ -411,9 +414,11 @@ def main(argv):
 	for i in archivestoprocess:
 		scanqueue.put(i)
 
+	processsleep = 1
+
 	## create processes for unpacking archives
 	for i in range(0,cpuamount):
-		p = multiprocessing.Process(target=processarchive, args=(scanqueue, reportqueue, scandirectory, unpackprefix, cacheresult, cachedir))
+		p = multiprocessing.Process(target=processarchive, args=(scanqueue, reportqueue, scandirectory, unpackprefix, cacheresult, cachedir, processsleep))
 		processpool.append(p)
 
 	## create one process to write to the database
