@@ -408,7 +408,7 @@ def main(argv):
 
 	## first create a thread that writes results to the database
 	scanqueue = processmanager.JoinableQueue(maxsize=0)
-	reportqueue = processmanager.JoinableQueue(maxsize=0)
+	resultqueue = processmanager.JoinableQueue(maxsize=0)
 	processpool = []
 
 	for i in archivestoprocess:
@@ -418,11 +418,11 @@ def main(argv):
 
 	## create processes for unpacking archives
 	for i in range(0,cpuamount):
-		p = multiprocessing.Process(target=processarchive, args=(scanqueue, reportqueue, scandirectory, unpackprefix, cacheresult, cachedir, processsleep))
+		p = multiprocessing.Process(target=processarchive, args=(scanqueue, resultqueue, scandirectory, unpackprefix, cacheresult, cachedir, processsleep))
 		processpool.append(p)
 
 	## create one process to write to the database
-	r = multiprocessing.Process(target=writetodb, args=(dbconnection, dbcursor, reportqueue))
+	r = multiprocessing.Process(target=writetodb, args=(dbconnection, dbcursor, resultqueue))
 	processpool.append(r)
 
 	## start all the processes
@@ -430,7 +430,7 @@ def main(argv):
 		p.start()
 
 	scanqueue.join()
-	reportqueue.join()
+	resultqueue.join()
 
 	## flush db connection, just in case
 	dbconnection.commit()
