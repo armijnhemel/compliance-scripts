@@ -46,7 +46,7 @@ $ psql -U osadl < lca.sql
 
 Populating the database:
 
-This step is not needed if a prefab database is used (available from OSADL for OSADL members).
+This step is not needed if a prefab database is used (will be made available from OSADL for OSADL members).
 
 1. download the Linux kernel source code releases (only tar.xz files are downloaded), or use a previously downloaded collection of downloaded sources. For both the "kerneldownload.py" script should be used to generate the correct metadata that is used:
 
@@ -63,3 +63,5 @@ Running the audit script:
 The audit script uses a configuration file. An example with some default values and their explanations can be found in "audit.config". The settings relevant to the audt are in the "audit" section.
 
 $ python3 osadlaudit -s /path/to/directory/with/sources/to/scan -c /path/to/configuration/file
+
+When reading the data from a cache (JSON files) please be aware that it is very easy to swamp the database writing process, even with just a single process putting data into the task queue. Use this feature with care.
