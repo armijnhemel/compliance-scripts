@@ -117,12 +117,17 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 		## 1. unpack the archive
 		## 2. compute hashes for each file found in the archive
 		## 3. report results
-		try:
-			sourcetar = tarfile.open(os.path.join(sourcesdirectory, task['filename']), 'r')
-			sourcetar.extractall(path=unpackdirectory)
-			sourcetar.close()
-		except:
-			## tar file could not be unpacked, so stop
+		if 'tar' in task['filename'].lower():
+			try:
+				sourcetar = tarfile.open(os.path.join(sourcesdirectory, task['filename']), 'r')
+				sourcetar.extractall(path=unpackdirectory)
+				sourcetar.close()
+			except:
+				## tar file could not be unpacked, so stop
+				shutil.rmtree(unpackdirectory)
+				scanqueue.task_done()
+				continue
+		else:
 			## TODO: add support for ZIP files
 			shutil.rmtree(unpackdirectory)
 			scanqueue.task_done()
