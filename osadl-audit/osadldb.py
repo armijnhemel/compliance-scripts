@@ -22,6 +22,7 @@
 import sys, os, subprocess, tempfile, hashlib, json, stat, shutil, copy, time
 import argparse, configparser, multiprocessing, tarfile, json
 import psycopg2, psycopg2.extras
+import psutil
 
 usetlsh = False
 try:
@@ -111,7 +112,9 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 				## send the results for the archive to the database
 				resultqueue.put(('archive', copy.deepcopy(task)))
 
-				if processsleep > 0:
+				memstats = psutil.virtual_memory()
+				#swapstats = psutil.swap_memory()
+				if memstats.percent > 30:
 					time.sleep(processsleep)
 
 				## tell the queue the task is done
@@ -414,7 +417,7 @@ def main(argv):
 	for i in archivestoprocess:
 		scanqueue.put(i)
 
-	processsleep = 1
+	processsleep = 30
 
 	## create processes for unpacking archives
 	for i in range(0,cpuamount):
