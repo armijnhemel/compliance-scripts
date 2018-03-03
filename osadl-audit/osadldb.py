@@ -59,6 +59,7 @@ def writetodb(dbconn, dbcursor, resultqueue):
 
 ## a thread to unpack an archive and compute checksums for files
 def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cacheresult, cachedir, processsleep):
+	seensha256 = set()
 	while True:
 		## grab a new task
 		task = scanqueue.get()
@@ -81,26 +82,20 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 						pass
 				kernelresultfile.close()
 
+		results = []
+		hashresults = []
+		resultcounter = 0
+
 		if cacheresult and jsonsuccess:
 				## split the results
-				results = []
-				hashresults = []
-				resultcounter = 0
 				for f in kernelresults:
 					fullfilename = f['fullfilename']
 					relativefilename = f['relativefilename']
 					filehash = f['sha256']
 					results.append((task['package'], task['version'], fullfilename, relativefilename, os.path.basename(fullfilename), filehash))
-					if 'tlshhash' in f:
+					if 'tlshhash' in f and not filehash in seensha256:
 						hashresults.append({'sha256': filehash, 'tlshhash': f['tlshhash']})
-
-					## send intermediate results to the database, per 1000 files
-					resultcounter += 1
-					if resultcounter % 1000 == 0:
-						resultqueue.put(('file', results))
-						resultqueue.put(('hashes', hashresults))
-						results = []
-						hashresults = []
+					seensha256.add(filehash)
 
 				## send results to the database
 				resultqueue.put(('file', results))
@@ -147,10 +142,6 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 			shutil.rmtree(unpackdirectory)
 			scanqueue.task_done()
 			continue
-
-		results = []
-		hashresults = []
-		resultcounter = 0
 
 		cacheresults = []
 
@@ -208,11 +199,13 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 						tlshhash = tlsh.hash(sourcedata)
 						if cacheresult:
 							tmpresult['tlshhash'] = tlshhash
+						if not filehash in seensha256:
+							hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
+				seensha256.add(filehash)
+
 
 				if cacheresult:
 					cacheresults.append(tmpresult)
-
-				hashresults.append({'sha256': filehash, 'tlshhash': tlshhash})
 
 				## send intermediate results to the database, per 1000 files
 				resultcounter += 1
