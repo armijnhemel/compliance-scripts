@@ -92,6 +92,14 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 					if 'tlshhash' in f:
 						hashresults.append({'sha256': filehash, 'tlshhash': f['tlshhash']})
 
+					## send intermediate results to the database, per 1000 files
+					resultcounter += 1
+					if resultcounter % 1000 == 0:
+						resultqueue.put(('file', results))
+						resultqueue.put(('hashes', hashresults))
+						results = []
+						hashresults = []
+
 				## send results to the database
 				resultqueue.put(('file', results))
 				resultqueue.put(('hashes', hashresults))
