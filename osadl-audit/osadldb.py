@@ -34,6 +34,8 @@ except:
 ## a thread that takes results and writes them to the database
 def writetodb(dbconn, dbcursor, resultqueue):
 	seensha256 = set()
+	preparedhash = "PREPARE hash_insert as INSERT INTO hashes (sha256, tlsh) values ($1, $2) ON CONFLICT DO NOTHING"
+	dbcursor.execute(preparedhash)
 	while True:
 		## get data from the result queue
 		(resulttype, results) = resultqueue.get()
@@ -52,7 +54,8 @@ def writetodb(dbconn, dbcursor, resultqueue):
 					## ignore entries without TLSH hashes for now, as they wouldn't matter for matching
 					## and the checksum has already been recorded in 'fileinfo'
 					if res['tlshhash'] != None:
-						dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
+						#dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
+						dbcursor.execute("execute hash_insert(%s, %s)", (res['sha256'], res['tlshhash']))
 						seensha256.add(res['sha256'])
 			dbconn.commit()
 		resultqueue.task_done()
