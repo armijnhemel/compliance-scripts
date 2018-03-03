@@ -84,6 +84,7 @@ def processarchive(scanqueue, resultqueue, sourcesdirectory, unpackprefix, cache
 				## split the results
 				results = []
 				hashresults = []
+				resultcounter = 0
 				for f in kernelresults:
 					fullfilename = f['fullfilename']
 					relativefilename = f['relativefilename']
