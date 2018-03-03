@@ -36,12 +36,14 @@ def writetodb(dbconn, dbcursor, resultqueue):
 	seensha256 = set()
 	preparedhash = "PREPARE hash_insert as INSERT INTO hashes (sha256, tlsh) values ($1, $2) ON CONFLICT DO NOTHING"
 	dbcursor.execute(preparedhash)
+	preparedfileinfo = "PREPARE fileinfo_insert as INSERT INTO fileinfo (packagename, version, fullfilename, relativefilename, filename, checksum) VALUES ($1, $2, $3, $4, $5, $6)"
+	dbcursor.execute(preparedfileinfo)
 	while True:
 		## get data from the result queue
 		(resulttype, results) = resultqueue.get()
 		## first part of the tuple is the type
 		if resulttype == 'file':
-			psycopg2.extras.execute_values(dbcursor, "insert into fileinfo (packagename, version, fullfilename, relativefilename, filename, checksum) values %s", results)
+			psycopg2.extras.execute_batch(dbcursor, "execute fileinfo_insert(%s, %s, %s, %s, %s, %s)", results)
 			dbconn.commit()
 		elif resulttype == 'archive':
 			dbcursor.execute("insert into archive (packagename, version, archivename, checksum, project, downloadurl, website) values (%s,%s,%s,%s,%s,%s,%s)", (results['package'], results['version'], results['filename'], results['sha256'], results['project'], results['downloadurl'], results['downloadurl']))
@@ -54,7 +56,6 @@ def writetodb(dbconn, dbcursor, resultqueue):
 					## ignore entries without TLSH hashes for now, as they wouldn't matter for matching
 					## and the checksum has already been recorded in 'fileinfo'
 					if res['tlshhash'] != None:
-						#dbcursor.execute("insert into hashes (sha256, tlsh) values (%s,%s) ON CONFLICT DO NOTHING", (res['sha256'], res['tlshhash']))
 						dbcursor.execute("execute hash_insert(%s, %s)", (res['sha256'], res['tlshhash']))
 						seensha256.add(res['sha256'])
 			dbconn.commit()
