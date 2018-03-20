@@ -18,8 +18,8 @@ Included in this directory are:
 
 A few dependencies are needed:
     * tlsh (optional)
-    * requests (optional, just for downloader script)
-    * psutil
+    * requests (optional, just for downloader script) - Fedora package name: python3-requests
+    * psutil - Fedora package name: python3-psutil
     * ScanCode
     * FOSSology (uses "nomossa", the standalone Nomos scanner for people who do not want to install/use/configure all of FOSSology. This can easily be replaced by the path of the regular "nomos" if there is already an existing FOSSology installation)
 
