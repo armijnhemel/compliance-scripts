@@ -29,6 +29,8 @@ Installing ScanCode:
 2. run the scancode program once so it self-configures
 3. add the path of the scancode program to the configuration file (example: "audit.config")
 
+Make sure that you have Git commit fea65d35a475553368db17a1d196e61a92974a74 or later (current on March 20, 2018).
+
 Creating the database:
 
 The database creation script requires PostgreSQL 9.5 or later and a recent psycopg2.

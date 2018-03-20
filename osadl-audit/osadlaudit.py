@@ -97,8 +97,8 @@ def runlicensescanner(scanqueue, reportqueue, scancodepath, nomossapath):
 		scancoderes = set()
 		fossologyres = set()
 
-		## Run Scancode
-		p = subprocess.Popen([scancodepath, '--quiet', os.path.join(filedir, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		## Run Scancode, needs fea65d35a475553368db17a1d196e61a92974a74 or later
+		p = subprocess.Popen([scancodepath, '-lceu', '--quiet', '--json-pp', '-', os.path.join(filedir, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 		(stanout, stanerr) = p.communicate()
 		scancodejson = json.loads(stanout)
 		for f in scancodejson['files']:
