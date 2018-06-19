@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 ## Copyright 2012-2018 Armijn Hemel for Tjaldur Software Governance Solutions
+## Licensed under the terms of the GNU General Public License version 3
+## SPDX-License-Identifier: GPL-3.0-only
 ## Licensed under GPL version 3, see LICENSE file for details
 
 '''
