@@ -37,6 +37,10 @@ The database creation script requires PostgreSQL 9.5 or later and a recent psyco
 
 1. install PostgreSQL. This is outside of the scope of this document.
 
+For standard use cases: make sure to initialize the database.
+
+# postgresql-setup --initdb
+
 2. create a database and a user, for example:
 
     create database osadl;
