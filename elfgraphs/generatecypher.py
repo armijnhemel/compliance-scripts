@@ -362,8 +362,9 @@ def main(argv):
                                             libfound = True
                                             break
                                 if not libfound:
-                                    # problem here
-                                    pass
+                                    # problem here, ignore for now
+                                    continue
+                                    #pass
                                 cypherfileopen.write(", \n")
                                 cypherfileopen.write("(%s)-[:LINKSWITH]->(%s)" % (elftoplaceholder[filename], elftoplaceholder[fl]))
 
