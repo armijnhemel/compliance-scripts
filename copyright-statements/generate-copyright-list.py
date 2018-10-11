@@ -8,7 +8,7 @@
 # It requires that ScanCode is invoked with the --full-root option, for
 # example:
 #
-# $ time ./scancode --full-root /path/to/source/directory/ > /tmp/output.json
+# $ time ./scancode --full-root -l -c -e -u --json-pp=/tmp/output.json /path/to/source/directory/
 #
 # When scanning the Linux kernel it is highly recommended to take advantage of
 # the parallel processing options that ScanCode offers (see the ScanCode help).
