@@ -280,7 +280,7 @@ def main(argv):
                             continue
 
                         # store name
-                        store_symbol['name'] = symbol.name.decode()
+                        store_symbol['name'] = symbol.name
                         # store size
                         store_symbol['size'] = symbol['st_size']
 
@@ -303,7 +303,7 @@ def main(argv):
                 elif isinstance(sec, elftools.elf.dynamic.DynamicSection):
                     for tag in sec.iter_tags():
                         if tag.entry.d_tag == 'DT_NEEDED':
-                            linkedname = tag.needed.decode()
+                            linkedname = tag.needed
                             linkedlibraries[relfullfilename].append(linkedname)
             openedelffile.close()
     # now create a cypherfile for each set of ELF files that belong together
