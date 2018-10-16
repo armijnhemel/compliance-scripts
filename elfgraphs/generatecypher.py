@@ -59,8 +59,11 @@ def main(argv):
     parser = argparse.ArgumentParser()
 
     # the following options are provided on the commandline
-    parser.add_argument("-c", "--config", action="store", dest="cfg", help="path to configuration file", metavar="FILE")
-    parser.add_argument("-d", "--directory", action="store", dest="dirtoscan", help="path to directory to scan", metavar="DIR")
+    parser.add_argument("-c", "--config", action="store", dest="cfg",
+                        help="path to configuration file", metavar="FILE")
+    parser.add_argument("-d", "--directory", action="store",
+                        dest="dirtoscan",
+                        help="path to directory to scan", metavar="DIR")
     args = parser.parse_args()
 
     # first some sanity checks for the directory that needs to be scanned
@@ -102,21 +105,25 @@ def main(argv):
             try:
                 cypherdir = config.get(section, 'cypherdir')
             except:
-                print("Directory to write Cypher files not configured, exiting", file=sys.stderr)
+                print("Directory to write Cypher files not configured",
+                      file=sys.stderr)
                 configfile.close()
                 sys.exit(1)
             if not os.path.exists(cypherdir):
-                print("Directory to write Cypher files does not exist, exiting", file=sys.stderr)
+                print("Directory to write Cypher files does not exist",
+                      file=sys.stderr)
                 configfile.close()
                 sys.exit(1)
             if not os.path.isdir(cypherdir):
-                print("Directory to write Cypher files is not a directory, exiting", file=sys.stderr)
+                print("Directory to write Cypher files is not a directory",
+                      file=sys.stderr)
                 configfile.close()
                 sys.exit(1)
     configfile.close()
 
     if cypherdir is None:
-        print("Directory to write Cypher files not configured, exiting", file=sys.stderr)
+        print("Directory to write Cypher files not configured",
+              file=sys.stderr)
         sys.exit(1)
 
     # keep a list per machine architecture, in case of leftover binaries
@@ -180,7 +187,8 @@ def main(argv):
                     if os.path.islink(targetfile):
                         symlinkname = targetfile
                         if targetfile in seensymlinks:
-                            # target file has already been seen, there is a cycle
+                            # target file has already been seen,
+                            # there is a cycle
                             break
                         seensymlinks.add(targetfile)
                         continue
@@ -306,6 +314,7 @@ def main(argv):
                             linkedname = tag.needed
                             linkedlibraries[relfullfilename].append(linkedname)
             openedelffile.close()
+
     # now create a cypherfile for each set of ELF files that belong together
     for a in machinetobinary:
         for o in machinetobinary[a]:
@@ -333,7 +342,8 @@ def main(argv):
                         allplaceholdernames.add(placeholdername)
 
                     # write the data to a Cypher file
-                    cypherfile = tempfile.mkstemp(dir=cypherdir, suffix='.cypher')
+                    cypherfile = tempfile.mkstemp(dir=cypherdir,
+                                                  suffix='.cypher')
                     os.fdopen(cypherfile[0]).close()
                     cypherfileopen = open(cypherfile[1], 'w')
                     cypherfileopen.write("CREATE ")
@@ -357,7 +367,8 @@ def main(argv):
                                 libfound = False
                                 if l in filenametofullpath:
                                     for fl in filenametofullpath[l]:
-                                        # only record dependencies that are in the same "class"
+                                        # only record dependencies that
+                                        # are in the same "class"
                                         if fl in machinetobinary[a][o][endian][elfclass]:
                                             libfound = True
                                             break
