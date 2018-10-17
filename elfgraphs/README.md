@@ -6,6 +6,14 @@ This directory has scripts to create linking graphs for ELF files
 * Neo4J (tested with 3.4.9 community edition)
 * pyelftools (tested with python3-pyelftools-0.24-1.fc28.noarch)
 
+# License
+
+Licensed under the terms of the General Public License version 3
+
+SPDX-License-Identifier: GPL-3.0-only
+
+Copyright 2018 - Armijn Hemel
+
 # Getting Neo4J
 
 Get the community edition at:
@@ -32,8 +40,11 @@ BANG. For example:
 
     $ python3 generatecypher.py -c graph.config -d ~/tmp/bang-scan-gpiy5nb2/unpack/TEW-636APB-1002.bin-squashfs-1/
 
-Afterwards load the graph into Neo4J (figure 1) and then run the loaded graph
-by "playing" the script.
+Then load the graph into Neo4J (figure 1) and after it has finished loading
+(figure 2) run the loaded graph by "playing" the script. This should load all
+the data into the database and nodes and edges should show up in the database
+overview (figure 3). Clicking on "ELF" should show a number of nodes of the
+type "ELF" (figure 4).
 
 It might be that Neo4J barfs saying that there is a StackOverflowError and
 suggests to increase the size of the stack. As there will likely be quite a
@@ -49,11 +60,3 @@ By default only 25 nodes are shown, using this query:
 To change this to show for example all nodes use this query instead:
 
     MATCH (n:ELF) RETURN n
-
-# License
-
-Licensed under the terms of the General Public License version 3
-
-SPDX-License-Identifier: GPL-3.0-only
-
-Copyright 2018 - Armijn Hemel
