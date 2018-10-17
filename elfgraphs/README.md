@@ -60,3 +60,19 @@ By default only 25 nodes are shown, using this query:
 To change this to show for example all nodes use this query instead:
 
     MATCH (n:ELF) RETURN n
+
+To select just one node (for example: /bin/busybox):
+
+    MATCH (n) WHERE n.name='/bin/busybox' RETURN n
+
+To select all nodes where there is a relation "LINKSWITH":
+
+    MATCH n=()-[:LINKSWITH]-() return n
+
+To select a single node and everything that it links with (figure 5):
+
+    MATCH n=({name:'/bin/busybox'})-[:LINKSWITH]-() return n
+
+To select all files that link with a certain library (figure 6):
+
+    MATCH n=()-[:LINKSWITH]-({name: '/lib/libixml.so'}) return n
