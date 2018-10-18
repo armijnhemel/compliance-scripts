@@ -1,4 +1,7 @@
-This directory has scripts to create linking graphs for ELF files
+This directory has scripts to create linking graphs for ELF files. For
+background information either skip to the end of this file or read:
+
+https://lwn.net/Articles/548216/
 
 # Requirements
 
@@ -76,3 +79,38 @@ To select a single node and everything that it links with (figure 5):
 To select all files that link with a certain library (figure 6):
 
     MATCH n=()-[:LINKSWITH]-({name: '/lib/libixml.so'}) return n
+
+# Background
+
+On Unix(-like) systems such as Linux executables are typicaly in the ELF
+executable format. On most systems the executables are dynamically linked,
+meaning that dependencies are only resolved and loaded at run time, instead
+of at build time. Some open source licenses explicitly mention dynamic linking
+(for example LGPL 2.1, section 6b) which makes it important to know which
+files link with eachother.
+
+Looking at a single file is therefore not enough. Even looking at the direct
+dependencies is not sufficient but the whole linking graph has to be looked
+at to find out what the (likely) run time dependencies are.
+
+ELF files record several bits of useful information:
+
+1. a list of symbols (function names, variable names) that are needed at
+runtime
+2. a list of symbols (function names, variable names) that are exported/made
+available
+3. a list of file names of other ELF files (or symbolic links to other ELF
+files) in which the symbols can possibly be found
+
+During run time the so called "dynamic linker" sees if the ELF files from
+step 3 can be found in its search path. If so it extracts the symbols from
+these files (step 2) and matches them with the symbols from step 1. It is
+possible to have two libraries with the same name but in different paths. Which
+library is chosen depends on the configuration of the dynamic linker.
+
+Sometimes some search paths are hardcoded to a specific ELF file using the
+so called "RPATH", which makes it possible to somewhat limit from which
+libraries symbols are chosen.
+
+The scripts here do something similar to the dynamic linker, but instead of
+running the program graphs are created for displaying and searching.
