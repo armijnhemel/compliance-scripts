@@ -212,10 +212,13 @@ def main(argv):
             # then do a first check to see if a file can be a valid ELF
             # file by reading the first four bytes of the file to
             # verify (see ELF specification)
-            scanfile = open(fullfilename, 'rb')
-            databytes = scanfile.read(4)
-            scanfile.close()
-            if databytes != b'\x7f\x45\x4c\x46':
+            try:
+                scanfile = open(fullfilename, 'rb')
+                databytes = scanfile.read(4)
+                scanfile.close()
+                if databytes != b'\x7f\x45\x4c\x46':
+                    continue
+            except:
                 continue
 
             dynamicelf = False
