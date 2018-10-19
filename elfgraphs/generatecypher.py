@@ -50,6 +50,8 @@ import string
 import secrets
 import configparser
 import argparse
+
+# import pyelftools
 import elftools.elf.elffile
 import elftools.elf.dynamic
 import elftools.elf.sections
