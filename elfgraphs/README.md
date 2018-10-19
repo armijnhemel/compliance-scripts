@@ -5,7 +5,7 @@ https://lwn.net/Articles/548216/
 
 # Requirements
 
-* Python3
+* Python3 (3.6)
 * Neo4J (tested with 3.4.9 community edition)
 * pyelftools (tested with python3-pyelftools-0.24-1.fc28.noarch)
 
