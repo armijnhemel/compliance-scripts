@@ -23,12 +23,14 @@ def main(argv):
     parser = argparse.ArgumentParser()
 
     # the following options are provided on the commandline
-    parser.add_argument("-j", "--json", action="store", dest="jsonfile", help="path to ScanCode JSON file", metavar="FILE")
-    parser.add_argument("-d", "--directory", action="store", dest="toplevel", help="top level directory", metavar="DIR")
+    parser.add_argument("-j", "--json", action="store", dest="jsonfile",
+                        help="path to ScanCode JSON file", metavar="FILE")
+    parser.add_argument("-d", "--directory", action="store", dest="toplevel",
+                        help="top level directory", metavar="DIR")
     args = parser.parse_args()
 
     if args.jsonfile is None:
-                parser.error("ScanCode JSON file missing")
+        parser.error("ScanCode JSON file missing")
 
     if not os.path.exists(args.jsonfile):
         parser.error("ScanCode JSON file does not exist")
