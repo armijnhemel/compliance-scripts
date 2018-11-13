@@ -65,22 +65,26 @@ def main(argv):
         print("JSON element 'Repositories' missing in %s" % repositoriesfilename, file=sys.stderr)
         sys.exit(1)
 
-    repositoriestotags = {}
+    # store top level identifiers
+    repositoriestoimages = {}
+    imagestorepositories = {}
+
     for i in repositoriesjson['Repositories']:
         tagvalueseen = set()
         for r in repositoriesjson['Repositories'][i]:
             tagvalue = repositoriesjson['Repositories'][i][r]
             if not tagvalue.startswith('sha256:'):
                 continue
-            #if tagvalue in tagvalueseen:
-            #    continue
-            #tagvalueseen.add(tagvalue)
-            repositoriestotags[r] = tagvalue.split(':', 1)[1]
+            tagvalue = tagvalue.split(':', 1)[1]
+            repositoriestoimages[r] = tagvalue
+            if not tagvalue in imagestorepositories:
+                imagestorepositories[tagvalue] = []
+            imagestorepositories[tagvalue].append(r)
 
     # now extract meta information for the layers of each image
     imagetolayers = {}
-    for r in repositoriestotags:
-        imagejsonfilename = dockerdir / "image" / "overlay2" / "imagedb" / "content" / "sha256" / repositoriestotags[r]
+    for r in repositoriestoimages:
+        imagejsonfilename = dockerdir / "image" / "overlay2" / "imagedb" / "content" / "sha256" / repositoriestoimages[r]
         if not imagejsonfilename.exists():
             print("Path '%s' does not exist" % imagejsonfilename, file=sys.stderr)
             sys.exit(1)
@@ -137,10 +141,11 @@ def main(argv):
                 print("Path '%s' is not a regular file" % layerjsonfilename, file=sys.stderr)
                 sys.exit(1)
 
-    cacheidtosha256 = {}
     layeridtolayerdir = {}
     layerdirtolayerid = {}
     layertoparent = {}
+    layertocacheid = {}
+    cacheidtolayer = {}
 
     layerdir = dockerdir / "image" / "overlay2" / "layerdb" / "sha256"
 
@@ -194,15 +199,31 @@ def main(argv):
             continue
         layertoparent[diffid] = layerdirtolayerid[parentid]
 
+        cacheidname = dockerdir / "image" / "overlay2" / "layerdb" / "sha256" / l.name / 'cache-id'
+        if not cacheidname.exists():
+            continue
+        try:
+            cachefile = open(cacheidname, 'r')
+            cachecontents = cachefile.read()
+            cachefile.close()
+        except:
+            continue
+
     for p in layertoparent:
         parent = layertoparent[p]
+        firstlayer = True
         if parent is not None:
-            print("PARENTS FOR:", p)
-            print(77*"-")
+            print("LAYER STACK FOR:", p)
+            print(81*"-")
         else:
-            print("NO PARENTS FOR:", p)
-            print(80*"-")
+            print("NO LAYER STACK FOR:", p)
+            print(84*"-")
         while parent is not None:
+            if firstlayer:
+                print()
+                print(p)
+                firstlayer = False
+            print("-->")
             print(parent)
             parent = layertoparent[parent]
         print()
