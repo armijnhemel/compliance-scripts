@@ -211,23 +211,31 @@ def main(argv):
         except:
             continue
 
-    for p in layertoparent:
+    # determine the top layer for each image
+    imagetoplayers = {}
+    for l in imagetolayers:
+        toplayerfound = False
+        for p in imagetolayers[l]:
+            if p not in parenttolayer:
+                imagetoplayers[l] = p
+                toplayerfound = True
+                break
+        if not toplayerfound:
+            # TODO: figure out what to do with this
+            pass
+
+    for l in imagetoplayers:
+        p = imagetoplayers[l]
         parent = layertoparent[p]
-        firstlayer = True
-        if parent is not None:
-            print("LAYER STACK FOR:", p)
-            print(81*"-")
-        else:
-            print("NO LAYER STACK FOR:", p)
-            print(84*"-")
+        print("LAYER STACK FOR:", l)
+        print((17+len(l))*"-")
+        print()
+        print(p)
         while parent is not None:
-            if firstlayer:
-                print()
-                print(p)
-                firstlayer = False
             print("-->")
             print(parent)
             parent = layertoparent[parent]
+        print(64*"-")
         print()
 
 
