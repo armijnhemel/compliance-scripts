@@ -129,7 +129,7 @@ def main(argv):
         print("SHARED LAYERS:")
         print("--------------")
         for i in intersections:
-            print("Layer %s and %s share:" % (i[0], i[1]), i[2])
+            print("Image %s and %s share:" % (i[0], i[1]), i[2])
 
     # optional
     for l in imagetolayers:
