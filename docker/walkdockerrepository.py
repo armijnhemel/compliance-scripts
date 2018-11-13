@@ -144,6 +144,7 @@ def main(argv):
     layeridtolayerdir = {}
     layerdirtolayerid = {}
     layertoparent = {}
+    parenttolayer = {}
     layertocacheid = {}
     cacheidtolayer = {}
 
@@ -198,6 +199,7 @@ def main(argv):
             # something is really wrong here
             continue
         layertoparent[diffid] = layerdirtolayerid[parentid]
+        parenttolayer[layerdirtolayerid[parentid]] = diffid
 
         cacheidname = dockerdir / "image" / "overlay2" / "layerdb" / "sha256" / l.name / 'cache-id'
         if not cacheidname.exists():
