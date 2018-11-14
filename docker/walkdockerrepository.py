@@ -22,11 +22,11 @@ def main(argv):
                         dest="dockerdirectory",
                         help="top level Docker directory", metavar="DIR")
 
+    # allow optional image to be passed as parameter
     parser.add_argument("-i", "--image", action="store",
                         dest="dockerimage",
-                        help="Docker image to report on", metavar="LAYER")
+                        help="Docker image to report on (optional)", metavar="LAYER")
 
-    # TODO: allow optional image to be passed as parameter
     args = parser.parse_args()
 
     if args.dockerdirectory is None:
