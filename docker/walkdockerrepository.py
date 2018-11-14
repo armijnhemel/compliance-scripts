@@ -76,6 +76,9 @@ def main(argv):
     for i in repositoriesjson['Repositories']:
         tagvalueseen = set()
         for r in repositoriesjson['Repositories'][i]:
+            if args.dockerimage != None:
+                if r != args.dockerimage:
+                    continue
             tagvalue = repositoriesjson['Repositories'][i][r]
             if not tagvalue.startswith('sha256:'):
                 continue
@@ -262,9 +265,6 @@ def main(argv):
             pass
 
     for l in imagetoplayers:
-        if args.dockerimage != None:
-            if l != args.dockerimage:
-                continue
         p = imagetoplayers[l]
         parent = layertoparent[p]
         print("LAYER STACK FOR:", l)
