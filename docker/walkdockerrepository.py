@@ -22,6 +22,10 @@ def main(argv):
                         dest="dockerdirectory",
                         help="top level Docker directory", metavar="DIR")
 
+    parser.add_argument("-i", "--image", action="store",
+                        dest="dockerimage",
+                        help="Docker image to report on", metavar="LAYER")
+
     # TODO: allow optional image to be passed as parameter
     args = parser.parse_args()
 
@@ -258,6 +262,9 @@ def main(argv):
             pass
 
     for l in imagetoplayers:
+        if args.dockerimage != None:
+            if l != args.dockerimage:
+                continue
         p = imagetoplayers[l]
         parent = layertoparent[p]
         print("LAYER STACK FOR:", l)
