@@ -132,14 +132,29 @@ def main(argv):
             print("Image %s and %s share:" % (i[0], i[1]), i[2])
 
     # optional
+    layertometainformation = {}
     for l in imagetolayers:
         for ll in imagetolayers[l]:
-            layerjsonfilename = dockerdir / "image" / "overlay2" / "distribution" / "v2metadata-by-diffid" / "sha256" / ll
-            if not layerjsonfilename.exists():
+            metajsonfilename = dockerdir / "image" / "overlay2" / "distribution" / "v2metadata-by-diffid" / "sha256" / ll
+            if not metajsonfilename.exists():
                 continue
-            if not layerjsonfilename.is_file():
-                print("Path '%s' is not a regular file" % layerjsonfilename, file=sys.stderr)
+            if not metajsonfilename.is_file():
+                print("Path '%s' is not a regular file" % metajsonfilename, file=sys.stderr)
                 sys.exit(1)
+            try:
+                metafile = open(metajsonfilename, 'r')
+                metacontents = metafile.read()
+                metafile.close()
+                metainfo = json.loads(metacontents)
+                if len(metainfo) != 0:
+                    if ll not in layertometainformation:
+                        layertometainformation[ll] = []
+                    for m in metainfo:
+                        if 'SourceRepository' not in m:
+                            continue
+                        layertometainformation[ll].append(m['SourceRepository'])
+            except:
+                continue
 
     layeridtolayerdir = {}
     layerdirtolayerid = {}
@@ -168,7 +183,7 @@ def main(argv):
         layeridtolayerdir[diffid] = l.name
         layerdirtolayerid[l.name] = diffid
 
-    # now with a full mapping available read the 'parent' and 'cache-id' files
+    # now with a full mapping available read the 'parent'
     for l in layerdir.iterdir():
         if not l.is_dir():
             continue
@@ -201,15 +216,33 @@ def main(argv):
         layertoparent[diffid] = layerdirtolayerid[parentid]
         parenttolayer[layerdirtolayerid[parentid]] = diffid
 
+    # now with a full mapping available read the 'cache id'
+    for l in layerdir.iterdir():
+        if not l.is_dir():
+            continue
+        # first read 'diff'
+        diffname = dockerdir / "image" / "overlay2" / "layerdb" / "sha256" / l.name / 'diff'
+        if not diffname.exists():
+            continue
+        try:
+            difffile = open(diffname, 'r')
+            diffcontents = difffile.read()
+            diffid = diffcontents.split(':', 1)[1]
+            difffile.close()
+        except:
+            continue
+
         cacheidname = dockerdir / "image" / "overlay2" / "layerdb" / "sha256" / l.name / 'cache-id'
         if not cacheidname.exists():
             continue
         try:
             cachefile = open(cacheidname, 'r')
-            cachecontents = cachefile.read()
+            cacheid = cachefile.read()
             cachefile.close()
         except:
             continue
+        layertocacheid[diffid] = cacheid
+        cacheidtolayer[cacheid] = diffid
 
     # determine the top layer for each image
     imagetoplayers = {}
@@ -230,10 +263,20 @@ def main(argv):
         print("LAYER STACK FOR:", l)
         print((17+len(l))*"-")
         print()
-        print(p)
+        if p in layertometainformation:
+            print(p, 'from:', ''.join(set(layertometainformation[p])))
+            #print(dockerdir / 'overlay2' / layertocacheid[p], 'from:', ''.join(set(layertometainformation[p])))
+        else:
+            print(p)
+            #print(dockerdir / 'overlay2' / layertocacheid[p])
         while parent is not None:
             print("-->")
-            print(parent)
+            if parent in layertometainformation:
+                print(parent, 'from:', ''.join(set(layertometainformation[p])))
+                #print(dockerdir / 'overlay2' / layertocacheid[parent], 'from:', ''.join(set(layertometainformation[parent])))
+            else:
+                print(parent)
+                #print(dockerdir / 'overlay2' / layertocacheid[parent])
             parent = layertoparent[parent]
         print(64*"-")
         print()
