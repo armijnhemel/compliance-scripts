@@ -347,10 +347,17 @@ def main(argv):
         # print which new paths are introduced in each layer
         filesseen = set()
         for p in imagestack:
-            if len(set(layertotarmeta[p]).difference(filesseen)) == 1:
-                print("Layer %s introduced %d new file" % (p, len(set(layertotarmeta[p]).difference(filesseen))))
+            newfiles = set(layertotarmeta[p]).difference(filesseen)
+            if len(newfiles) == 1:
+                print("Layer %s introduced 1 new path" % p)
+                #for f in newfiles:
+                #    print("*", f)
+                #print()
             else:
-                print("Layer %s introduced %d new files" % (p, len(set(layertotarmeta[p]).difference(filesseen))))
+                print("Layer %s introduced %d new paths" % (p, len(newfiles)))
+                #for f in sorted(newfiles):
+                #    print("*", f)
+                #print()
             filesseen.update(layertotarmeta[p])
         print()
 
