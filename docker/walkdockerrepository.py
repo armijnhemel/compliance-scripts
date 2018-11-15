@@ -14,6 +14,7 @@ import pathlib
 import base64
 import binascii
 import gzip
+import collections
 
 
 def main(argv):
@@ -322,6 +323,8 @@ def main(argv):
         print("LAYER STACK FOR:", l)
         print((17+len(l))*"-")
         print()
+        imagestack = collections.deque()
+        imagestack.appendleft(p)
         if p in layertometainformation:
             print(p, 'from:', ''.join(set(layertometainformation[p])))
             #print(dockerdir / 'overlay2' / layertocacheid[p], 'from:', ''.join(set(layertometainformation[p])))
@@ -329,6 +332,7 @@ def main(argv):
             print(p)
             #print(dockerdir / 'overlay2' / layertocacheid[p])
         while parent is not None:
+            imagestack.appendleft(parent)
             print("-->")
             if parent in layertometainformation:
                 print(parent, 'from:', ''.join(set(layertometainformation[p])))
@@ -339,6 +343,37 @@ def main(argv):
             parent = layertoparent[parent]
         print(64*"-")
         print()
+
+        # print which new paths are introduced in each layer
+        filesseen = set()
+        for p in imagestack:
+            if len(set(layertotarmeta[p]).difference(filesseen)) == 1:
+                print("Layer %s introduced %d new file" % (p, len(set(layertotarmeta[p]).difference(filesseen))))
+            else:
+                print("Layer %s introduced %d new files" % (p, len(set(layertotarmeta[p]).difference(filesseen))))
+            filesseen.update(layertotarmeta[p])
+        print()
+
+        # for each layer print the first layer that introduce
+        # changes to files, plus to which files
+        while True:
+            try:
+                p = imagestack.popleft()
+                filesseen = set(layertotarmeta[p])
+                alreadychanged = set()
+                for pp in imagestack:
+                    layerintersection = filesseen.intersection(set(layertotarmeta[pp]))
+                    if len(layerintersection) != 0:
+                        # only report the files that are first changes
+                        newlychanged = filesseen.intersection(layerintersection).difference(alreadychanged)
+                        if len(newlychanged) != 0:
+                            print("Files from %s changed in %s:" % (p, pp))
+                            for f in sorted(newlychanged):
+                                print("*", f)
+                            print()
+                        alreadychanged.update(layerintersection)
+            except Exception as e:
+                break
 
 
 if __name__ == "__main__":
