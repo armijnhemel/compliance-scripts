@@ -12,6 +12,8 @@ import json
 import argparse
 import pathlib
 import base64
+import binascii
+import gzip
 
 
 def main(argv):
@@ -190,7 +192,7 @@ def main(argv):
         layeridtolayerdir[diffid] = l.name
         layerdirtolayerid[l.name] = diffid
 
-    # now with a full mapping available read the 'parent'
+    # read 'parent'
     for l in layerdir.iterdir():
         if not l.is_dir():
             continue
@@ -223,7 +225,10 @@ def main(argv):
         layertoparent[diffid] = layerdirtolayerid[parentid]
         parenttolayer[layerdirtolayerid[parentid]] = diffid
 
-    # now with a full mapping available read the 'cache id'
+    # store the tar meta data
+    layertotarmeta = {}
+
+    # read 'cache id' and tar-split.json.gz
     for l in layerdir.iterdir():
         if not l.is_dir():
             continue
@@ -250,6 +255,53 @@ def main(argv):
             continue
         layertocacheid[diffid] = cacheid
         cacheidtolayer[cacheid] = diffid
+
+        # tar-split.json.gz is a gzip compressed file and
+        # each line is a separate JSON data structure
+        tarsplitname = dockerdir / "image" / "overlay2" / "layerdb" / "sha256" / l.name / 'tar-split.json.gz'
+        if not tarsplitname.exists():
+            continue
+        try:
+            if diffid not in layertotarmeta:
+                layertotarmeta[diffid] = []
+            tarsplitfile = gzip.open(tarsplitname, 'r')
+            for ll in tarsplitfile:
+                tarjson = json.loads(ll)
+
+                # first some sanity checks to see if the JSON is actually
+                # valid Docker JSON
+                if 'position' not in tarjson:
+                    continue
+                if 'type' not in tarjson:
+                    continue
+                if 'payload' not in tarjson:
+                    continue
+
+                # then process the JSON
+                if tarjson['type'] == 1:
+                    if 'name' not in tarjson:
+                        continue
+                elif 'type' == 2:
+                    pass
+                else:
+                    continue
+                if tarjson['payload'] is not None:
+                    try:
+                        layerbase64 = base64.b64decode(tarjson['payload'])
+                    except binascii.Error as e:
+                        continue
+                    except TypeError as e:
+                        continue
+                    if tarjson['type'] == 1:
+                        layertotarmeta[diffid].append(tarjson['name'])
+                else:
+                    # directory
+                    if tarjson['type'] == 1:
+                        pass
+                        #layertotarmeta[diffid].append(tarjson['name'])
+            tarsplitfile.close()
+        except Exception as e:
+            continue
 
     # determine the top layer for each image
     imagetoplayers = {}
