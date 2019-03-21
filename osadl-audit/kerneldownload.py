@@ -47,7 +47,7 @@ kernelsubdirs = ['v1.0', 'v1.1', 'v1.2', 'v1.3', 'v2.0', 'v2.1', 'v2.2',
                  'v2.3', 'v2.4', 'v2.5', 'v2.6', 'v2.6/longterm/v2.6.27',
                  'v2.6/longterm/v2.6.32', 'v2.6/longterm/v2.6.33',
                  'v2.6/longterm/v2.6.34', 'v2.6/longterm/v2.6.35',
-                 'v3.x', 'v4.x']
+                 'v3.x', 'v4.x', 'v5.x']
 
 filenametochecksum = {}
 faileddownloads = set()
