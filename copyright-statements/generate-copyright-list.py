@@ -3,15 +3,19 @@
 # Copyright Armijn Hemel for Tjaldur Software Governance Solutions
 # SPDX-Identifier: GPL-3.0
 
-# This scripts processes output of ScanCode 2.x and spits out a file
+# This scripts processes output of ScanCode 2.x and 3.0.x and ouutputs a file
 # with license information and copyright statements per file.
 # It requires that ScanCode is invoked with the --full-root option, for
 # example:
 #
-# $ time ./scancode --full-root -l -c -e -u --json-pp=/tmp/output.json /path/to/source/directory/
+# $ ./scancode --full-root -l -c -e -u --json-pp=/tmp/output.json /path/to/source/directory/
 #
 # When scanning the Linux kernel it is highly recommended to take advantage of
-# the parallel processing options that ScanCode offers (see the ScanCode help).
+# the parallel processing options that ScanCode offers. For example, to run with
+# eight processes at once:
+#
+# $ ./scancode --full-root -l -c -e -u -n 8 --json-pp=/tmp/output.json /path/to/source/directory/
+
 
 import sys
 import os
