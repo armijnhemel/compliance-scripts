@@ -3,7 +3,7 @@
 # Copyright Armijn Hemel for Tjaldur Software Governance Solutions
 # SPDX-Identifier: GPL-3.0
 
-# This scripts processes output of ScanCode 2.x and 3.0.x and ouutputs a file
+# This scripts processes output of ScanCode 3.0.x and ouutputs a file
 # with license information and copyright statements per file.
 # It requires that ScanCode is invoked with the --full-root option, for
 # example:
@@ -70,18 +70,17 @@ def main(argv):
         # store results
         sccopyrights = []
         sclicenses = []
-        scstatements = []
+        scstatements = set()
         if f['scan_errors'] != []:
             continue
+        if f['authors'] != []:
+            sccopyrights += f['authors']
         if f['copyrights'] != []:
             for u in f['copyrights']:
-                if u['authors'] != []:
-                    sccopyrights += u['authors']
-                if u['statements'] != []:
-                    scstatements += u['statements']
+                scstatements.add(u['value'])
         if f['licenses'] != []:
             for u in f['licenses']:
-                if u['spdx_license_key'] != '':
+                if u['spdx_license_key'] != None:
                     sclicenses.append(u['spdx_license_key'])
                 else:
                     sclicenses.append(u['short_name'])
@@ -91,7 +90,8 @@ def main(argv):
             licensestring = ", ".join(set(sclicenses))
             print("License(s): %s" % licensestring)
             extraline = True
-        if scstatements != []:
+        if scstatements != set():
+            scstatements = list(scstatements)
             if extraline:
                 print()
             print("Statement(s): %s" % scstatements[0])
