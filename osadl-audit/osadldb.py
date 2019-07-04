@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # script to create a database from Linux kernel tarballs
 # official Linux kernel tarballs can be grabbed from:
@@ -6,7 +6,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 #
-# Copyright 2018 - Armijn Hemel
+# Copyright 2018-2019 - Armijn Hemel
 #
 
 # This script processes a directory with Linux kernel tarballs.

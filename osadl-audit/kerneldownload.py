@@ -1,8 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # simple downloader for Linux kernel source code files
 # from the official Linux kernel download site
-# Copyright Armijn Hemel 2018
+# Copyright Armijn Hemel 2018-2019
 # Licensed under the terms of the GPLv3 license
 # SPDX-License-Identifier: GPL-3.0-only
 
