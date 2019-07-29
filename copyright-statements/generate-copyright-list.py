@@ -150,8 +150,8 @@ def main(argv):
             aggregate_statements.update(scstatements)
             continue
 
-        licensestring = ''
         # now pretty print
+        licensestring = ''
         if sclicenses != []:
             licensestring = ", ".join(set(sclicenses))
 
