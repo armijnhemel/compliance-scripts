@@ -37,6 +37,8 @@ def main(argv):
     parser.add_argument("-o", "--output-file", action="store", dest="output_file",
                         help="output file (mandatory for 'csv', otherwise stdout)",
                         metavar="FILE")
+    parser.add_argument("-z", "--ignore-empty", action="store", dest="ignore_empty",
+                        help="Ignore empty results (default: no)")
     args = parser.parse_args()
 
     if args.jsonfile is None:
@@ -58,6 +60,11 @@ def main(argv):
     if args.output_file is None:
         if output_format == 'csv':
             parser.error("Output file mandatory for CSV")
+
+    ignore_empty = False
+    if args.ignore_empty is not None:
+        if args.ignore_empty == 'yes':
+            ignore_empty = True
 
     try:
         scjsonfile = open(args.jsonfile).read()
@@ -120,6 +127,10 @@ def main(argv):
                     sclicenses.append(u['spdx_license_key'])
                 else:
                     sclicenses.append(u['short_name'])
+
+        if ignore_empty:
+            if scstatements == set() and sclicenses == []:
+                continue
 
         licensestring = ''
         # now pretty print
