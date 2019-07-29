@@ -78,8 +78,8 @@ for each statement > 1.
 
 If only results with results should be processed you can specify a flag to ignore all empty results:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z yes
+    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z
 
 If results should be aggregated instead of printed per file:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a yes
+    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a

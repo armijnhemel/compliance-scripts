@@ -38,10 +38,10 @@ def main(argv):
     parser.add_argument("-o", "--output-file", action="store", dest="output_file",
                         help="output file (mandatory for 'csv', otherwise stdout)",
                         metavar="FILE")
-    parser.add_argument("-z", "--ignore-empty", action="store", dest="ignore_empty",
-                        help="Ignore empty results (default: no)")
-    parser.add_argument("-a", "--aggregate", action="store", dest="aggregate",
-                        help="Aggregate results (default: no)")
+    parser.add_argument("-z", "--ignore-empty", action="store_true", dest="ignore_empty",
+                        help="Ignore empty results")
+    parser.add_argument("-a", "--aggregate", action="store_true", dest="aggregate",
+                        help="Aggregate results")
     args = parser.parse_args()
 
     if args.jsonfile is None:
@@ -64,17 +64,6 @@ def main(argv):
         if output_format == 'csv':
             parser.error("Output file mandatory for CSV")
 
-    ignore_empty = False
-    if args.ignore_empty is not None:
-        if args.ignore_empty == 'yes':
-            ignore_empty = True
-
-    aggregate = False
-    if args.aggregate is not None:
-        if args.aggregate == 'yes':
-            aggregate = True
-
-
     try:
         scjsonfile = open(args.jsonfile).read()
         scjson = json.loads(scjsonfile)
@@ -91,7 +80,7 @@ def main(argv):
             print("Could not open %s for writing CSV data" % args.output_file, file=sys.stderr)
             sys.exit(1)
         csvwriter = csv.writer(outfile)
-        if not aggregate:
+        if not args.aggregate:
             csvwriter.writerow(['Nr', 'File', 'License(s)', 'Statement(s)'])
         outfile_opened = True
     elif output_format == 'text':
@@ -141,11 +130,11 @@ def main(argv):
                 else:
                     sclicenses.append(u['short_name'])
 
-        if ignore_empty:
+        if args.ignore_empty:
             if scstatements == set() and sclicenses == []:
                 continue
 
-        if aggregate:
+        if args.aggregate:
             aggregate_licenses.update(sclicenses)
             aggregate_statements.update(scstatements)
             continue
@@ -176,7 +165,7 @@ def main(argv):
                     csvwriter.writerow(['', '','' , i])
         filecounter += 1
 
-    if aggregate:
+    if args.aggregate:
         if output_format == 'text':
            if aggregate_licenses != set():
                print("License(s):\n", file=outfile)
