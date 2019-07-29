@@ -21,6 +21,7 @@ import sys
 import os
 import json
 import argparse
+import csv
 
 
 def main(argv):
@@ -31,6 +32,11 @@ def main(argv):
                         help="path to ScanCode JSON file", metavar="FILE")
     parser.add_argument("-d", "--directory", action="store", dest="toplevel",
                         help="top level directory", metavar="DIR")
+    parser.add_argument("-f", "--output-format", action="store", dest="output_format",
+                        help="output format, supported values: 'csv', 'text' (default)")
+    parser.add_argument("-o", "--output-file", action="store", dest="output_file",
+                        help="output file (mandatory for 'csv', otherwise stdout)",
+                        metavar="FILE")
     args = parser.parse_args()
 
     if args.jsonfile is None:
@@ -45,6 +51,14 @@ def main(argv):
     if args.toplevel is None:
         parser.error("Top level directory not provided")
 
+    output_format = 'text'
+    if args.output_format == 'csv':
+        output_format = 'csv'
+
+    if args.output_file is None:
+        if output_format == 'csv':
+            parser.error("Output file mandatory for CSV")
+
     try:
         scjsonfile = open(args.jsonfile).read()
         scjson = json.loads(scjsonfile)
@@ -52,12 +66,34 @@ def main(argv):
         print("Cannot parse ScanCode JSON, exiting", file=sys.stderr)
         sys.exit(1)
 
-    pathlen = len(args.toplevel)
+    outfile_opened = False
 
-    filecounter = 1
+    if output_format == 'csv':
+        try:
+            outfile = open(args.output_file, 'w')
+        except:
+            print("Could not open %s for writing CSV data" % args.output_file, file=sys.stderr)
+            sys.exit(1)
+        csvwriter = csv.writer(outfile)
+        csvwriter.writerow(['Nr', 'File', 'License(s)', 'Statement(s)'])
+        outfile_opened = True
+    elif output_format == 'text':
+        if args.output_file is not None:
+            try:
+                outfile = open(args.output_file, 'w')
+            except:
+                print("Could not open %s for writing text data" % args.output_file, file=sys.stderr)
+                sys.exit(1)
+            outfile_opened = True
+        else:
+            outfile = sys.stdout
 
     # a set of file names to ignore, should be made configurable (TODO)
     ignore = set(['Makefile', 'Kconfig', 'Kbuild'])
+
+    pathlen = len(args.toplevel)
+
+    filecounter = 1
 
     for f in scjson['files']:
         # skip directories, this needs the source code directory
@@ -84,24 +120,35 @@ def main(argv):
                     sclicenses.append(u['spdx_license_key'])
                 else:
                     sclicenses.append(u['short_name'])
-        extraline = False
-        print("%d - %s\n" % (filecounter, f['path'][pathlen:]))
+
+        licensestring = ''
+        # now pretty print
         if sclicenses != []:
             licensestring = ", ".join(set(sclicenses))
-            print("License(s): %s" % licensestring)
-            extraline = True
-        if scstatements != set():
-            scstatements = list(scstatements)
-            if extraline:
-                print()
-            print("Statement(s): %s" % scstatements[0])
-            if len(scstatements) > 1:
+
+        scstatements = list(scstatements)
+
+        if output_format == 'text':
+            print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
+            if sclicenses != []:
+                print("License(s): %s\n" % licensestring, file=outfile)
+            if scstatements != []:
+                print("Statement(s): %s" % scstatements[0], file=outfile)
+                if len(scstatements) > 1:
+                    for i in scstatements[1:]:
+                        print(i, file=outfile)
+                print(file=outfile)
+        elif output_format == 'csv':
+            if scstatements == []:
+                csvwriter.writerow([filecounter, f['path'][pathlen:], licensestring, ''])
+            else:
+                csvwriter.writerow([filecounter, f['path'][pathlen:], licensestring, scstatements[0]])
                 for i in scstatements[1:]:
-                    print(i)
-            extraline = True
-        if extraline:
-            print()
+                    csvwriter.writerow(['', '','' , i])
         filecounter += 1
+
+    if outfile_opened:
+        outfile.close()
 
 if __name__ == "__main__":
     main(sys.argv)
