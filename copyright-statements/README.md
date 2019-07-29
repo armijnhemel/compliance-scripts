@@ -14,14 +14,21 @@ You can find the help for the program by running the following command:
 
 which will print:
 
-    usage: generate-copyright-list.py [-h] [-j FILE] [-d DIR]
+    usage: generate-copyright-list.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT]
+                                      [-o FILE] [-z IGNORE_EMPTY]
 
     optional arguments:
       -h, --help            show this help message and exit
       -j FILE, --json FILE  path to ScanCode JSON file
       -d DIR, --directory DIR
                             top level directory
-
+      -f OUTPUT_FORMAT, --output-format OUTPUT_FORMAT
+                            output format, supported values: 'csv', 'text'
+                            (default)
+      -o FILE, --output-file FILE
+                            output file (mandatory for 'csv', otherwise stdout)
+      -z IGNORE_EMPTY, --ignore-empty IGNORE_EMPTY
+                            Ignore empty results (default: no)
 
 To analyze results:
 
@@ -66,3 +73,7 @@ Data can also be written to CSV:
 Licenses will be concatenated, but copyright/author statements will not be and
 if there is more than one author/copyright statement a new row will be used
 for each statement > 1.
+
+If only results with results should be processed you can specify a flag to ignore all empty results:
+
+    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z yes
