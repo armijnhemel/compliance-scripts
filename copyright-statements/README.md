@@ -50,6 +50,8 @@ This will print a lot of data on standard out. If you want to write it to a file
 
 The command above will write the results to the file /tmp/copyrights.txt.
 
+## Output
+
 For each file the following will be printed:
 
 * a sequence number
@@ -68,6 +70,8 @@ For example:
     Copyright (c) 2006 Aurelien Jacobs <aurel@gnuage.org>
     Copyright (c) 1992-1993 Jean-loup Gailly.
 
+## Writing data as CSV
+
 Data can also be written to CSV:
 
     $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -f csv -o /tmp/copyrights.csv
@@ -76,9 +80,13 @@ Licenses will be concatenated, but copyright/author statements will not be and
 if there is more than one author/copyright statement a new row will be used
 for each statement > 1.
 
+## Ignoring files without results
+
 If only results with results should be processed you can specify a flag to ignore all empty results:
 
     $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z
+
+## Aggregating results
 
 If results should be aggregated instead of printed per file:
 
