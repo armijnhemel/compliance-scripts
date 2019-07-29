@@ -125,7 +125,7 @@ def main(argv):
                 scstatements.add(u['value'])
         if f['licenses'] != []:
             for u in f['licenses']:
-                if u['spdx_license_key'] != None:
+                if u['spdx_license_key'] is not None:
                     sclicenses.append(u['spdx_license_key'])
                 else:
                     sclicenses.append(u['short_name'])
@@ -160,30 +160,31 @@ def main(argv):
             if scstatements == []:
                 csvwriter.writerow([filecounter, f['path'][pathlen:], licensestring, ''])
             else:
-                csvwriter.writerow([filecounter, f['path'][pathlen:], licensestring, scstatements[0]])
+                csvwriter.writerow([filecounter, f['path'][pathlen:],
+                                    licensestring, scstatements[0]])
                 for i in scstatements[1:]:
-                    csvwriter.writerow(['', '','' , i])
+                    csvwriter.writerow(['', '', '', i])
         filecounter += 1
 
     if args.aggregate:
         if output_format == 'text':
-           if aggregate_licenses != set():
-               print("License(s):\n", file=outfile)
-               for license in sorted(list(aggregate_licenses)):
-                   print(license, file=outfile)
-               print(file=outfile)
-           if aggregate_statements != set():
-               print("Statement(s):\n", file=outfile)
-               for statement in sorted(list(aggregate_statements)):
-                   print(statement, file=outfile)
-               print(file=outfile)
+            if aggregate_licenses != set():
+                print("License(s):\n", file=outfile)
+                for lic in sorted(list(aggregate_licenses)):
+                    print(lic, file=outfile)
+                print(file=outfile)
+            if aggregate_statements != set():
+                print("Statement(s):\n", file=outfile)
+                for statement in sorted(list(aggregate_statements)):
+                    print(statement, file=outfile)
+                print(file=outfile)
         elif output_format == 'csv':
-           # first write the header
-           csvwriter.writerow(['Licenses', 'Statements'])
-           licenses = sorted(list(aggregate_licenses))
-           statements = sorted(list(aggregate_statements))
-           for i in itertools.zip_longest(licenses, statements):
-               csvwriter.writerow(i)
+            # first write the header
+            csvwriter.writerow(['Licenses', 'Statements'])
+            licenses = sorted(list(aggregate_licenses))
+            statements = sorted(list(aggregate_statements))
+            for i in itertools.zip_longest(licenses, statements):
+                csvwriter.writerow(i)
 
     if outfile_opened:
         outfile.close()
