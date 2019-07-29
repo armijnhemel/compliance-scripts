@@ -1,6 +1,6 @@
 Script that takes a JSON output file from ScanCode, plus a directory path, and generates a simple copyright notices file. This is a very rough proof of concept script.
 
-The following should be noted: this script only processes what ScanCode reports. If there is a bug in ScanCode, or if the output from ScanCode is not complete because it does not recognize for example a copyright statement or author statement, then it will not magically appear in the report.
+The following should be noted: this script only processes what ScanCode reports. If there is a bug in ScanCode, or if the output from ScanCode is not complete because it does not recognize for example a copyright statement or author statement, then it will not magically appear in the report. It should be noted that ScanCode will not catch every copyright/author statement.
 
 ScanCode can be found here:
 
@@ -35,9 +35,9 @@ This will extract licenses and copyright statements, use 8 threads and write the
 
     $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/
 
-This will print a lot of data on standard out. If you want to write it to a file you can redirect it:
+This will print a lot of data on standard out. If you want to write it to a file you can supply a parameter:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ > /tmp/copyrights.txt
+    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt
 
 The command above will write the results to the file /tmp/copyrights.txt.
 
@@ -59,4 +59,10 @@ For example:
     Copyright (c) 2006 Aurelien Jacobs <aurel@gnuage.org>
     Copyright (c) 1992-1993 Jean-loup Gailly.
 
-It should be noted that ScanCode will not catch every copyright/author statement.
+Data can also be written to CSV:
+
+    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -f csv -o /tmp/copyrights.csv
+
+Licenses will be concatenated, but copyright/author statements will not be and
+if there is more than one author/copyright statement a new row will be used
+for each statement > 1.
