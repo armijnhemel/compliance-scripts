@@ -22,6 +22,7 @@ import os
 import json
 import argparse
 import csv
+import itertools
 
 
 def main(argv):
@@ -39,6 +40,8 @@ def main(argv):
                         metavar="FILE")
     parser.add_argument("-z", "--ignore-empty", action="store", dest="ignore_empty",
                         help="Ignore empty results (default: no)")
+    parser.add_argument("-a", "--aggregate", action="store", dest="aggregate",
+                        help="Aggregate results (default: no)")
     args = parser.parse_args()
 
     if args.jsonfile is None:
@@ -66,6 +69,12 @@ def main(argv):
         if args.ignore_empty == 'yes':
             ignore_empty = True
 
+    aggregate = False
+    if args.aggregate is not None:
+        if args.aggregate == 'yes':
+            aggregate = True
+
+
     try:
         scjsonfile = open(args.jsonfile).read()
         scjson = json.loads(scjsonfile)
@@ -82,7 +91,8 @@ def main(argv):
             print("Could not open %s for writing CSV data" % args.output_file, file=sys.stderr)
             sys.exit(1)
         csvwriter = csv.writer(outfile)
-        csvwriter.writerow(['Nr', 'File', 'License(s)', 'Statement(s)'])
+        if not aggregate:
+            csvwriter.writerow(['Nr', 'File', 'License(s)', 'Statement(s)'])
         outfile_opened = True
     elif output_format == 'text':
         if args.output_file is not None:
@@ -99,6 +109,9 @@ def main(argv):
     ignore = set(['Makefile', 'Kconfig', 'Kbuild'])
 
     pathlen = len(args.toplevel)
+
+    aggregate_licenses = set()
+    aggregate_statements = set()
 
     filecounter = 1
 
@@ -132,6 +145,11 @@ def main(argv):
             if scstatements == set() and sclicenses == []:
                 continue
 
+        if aggregate:
+            aggregate_licenses.update(sclicenses)
+            aggregate_statements.update(scstatements)
+            continue
+
         licensestring = ''
         # now pretty print
         if sclicenses != []:
@@ -157,6 +175,26 @@ def main(argv):
                 for i in scstatements[1:]:
                     csvwriter.writerow(['', '','' , i])
         filecounter += 1
+
+    if aggregate:
+        if output_format == 'text':
+           if aggregate_licenses != set():
+               print("License(s):\n", file=outfile)
+               for license in sorted(list(aggregate_licenses)):
+                   print(license, file=outfile)
+               print(file=outfile)
+           if aggregate_statements != set():
+               print("Statement(s):\n", file=outfile)
+               for statement in sorted(list(aggregate_statements)):
+                   print(statement, file=outfile)
+               print(file=outfile)
+        elif output_format == 'csv':
+           # first write the header
+           csvwriter.writerow(['Licenses', 'Statements'])
+           licenses = sorted(list(aggregate_licenses))
+           statements = sorted(list(aggregate_statements))
+           for i in itertools.zip_longest(licenses, statements):
+               csvwriter.writerow(i)
 
     if outfile_opened:
         outfile.close()

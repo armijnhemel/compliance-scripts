@@ -15,7 +15,7 @@ You can find the help for the program by running the following command:
 which will print:
 
     usage: generate-copyright-list.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT]
-                                      [-o FILE] [-z IGNORE_EMPTY]
+                                      [-o FILE] [-z IGNORE_EMPTY] [-a AGGREGATE]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -29,6 +29,8 @@ which will print:
                             output file (mandatory for 'csv', otherwise stdout)
       -z IGNORE_EMPTY, --ignore-empty IGNORE_EMPTY
                             Ignore empty results (default: no)
+      -a AGGREGATE, --aggregate AGGREGATE
+                            Aggregate results (default: no)
 
 To analyze results:
 
@@ -77,3 +79,7 @@ for each statement > 1.
 If only results with results should be processed you can specify a flag to ignore all empty results:
 
     $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z yes
+
+If results should be aggregated instead of printed per file:
+
+    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a yes
