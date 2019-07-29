@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # Copyright Armijn Hemel for Tjaldur Software Governance Solutions
 # SPDX-Identifier: GPL-3.0
