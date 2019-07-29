@@ -144,7 +144,7 @@ def main(argv):
         if sclicenses != []:
             licensestring = ", ".join(set(sclicenses))
 
-        scstatements = list(scstatements)
+        scstatements = sorted(list(scstatements))
 
         if output_format == 'text':
             print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
