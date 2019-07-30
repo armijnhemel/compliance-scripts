@@ -8,6 +8,10 @@ https://github.com/nexB/scancode-toolkit
 
 The 'develop' branch is the most up to date and is the branch that should be used.
 
+This script is license under the GNU GPL 3 license.
+
+SPDX-Identifier: GPL-3.0-only.
+
 # Running the script
 
 You can find the help for the program by running the following command:
