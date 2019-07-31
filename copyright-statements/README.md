@@ -6,7 +6,7 @@ ScanCode can be found here:
 
 https://github.com/nexB/scancode-toolkit
 
-The 'develop' branch is the most up to date and is the branch that should be used.
+The 'develop' branch is the most up to date and is the branch that should be used. This software will not work with older versions of ScanCode (2.x and earlier) and needs at least ScanCode 3.x.
 
 This script is licensed under the GNU GPL 3 license.
 
@@ -42,9 +42,13 @@ To analyze results:
 
     $ python3 generate-copyright-list.py -j /path/to/scancode/json -d /path/to/source/code/directory
 
-For example, if the directory /tmp/busybox-1.28.0/ contains source code that needs to be scanned, then ScanCode can be launched as follows (assuming "scancode" is in the path):
+For example, if the directory /tmp/busybox-1.28.0/ contains source code that needs to be scanned, then ScanCode can be launched as follows (assuming that the "scancode" binary is in a directory in $PATH):
 
     $ scancode -l -c -e -u -n 8 --full-root --json-pp /tmp/scancode.json /tmp/busybox-1.28.0/
+
+If "scancode" is not in a directory in $PATH, you will want to use:
+
+    $ python /path/to/scancode -l -c -e -u -n 8 --full-root --json-pp /tmp/scancode.json /tmp/busybox-1.28.0/
 
 This will extract licenses and copyright statements, use 8 threads and write the results to a separate file and it prints the full path (this is necessary, as ScanCode sometimes removes directory names). Then:
 
