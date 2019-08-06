@@ -4,7 +4,7 @@
 # SPDX-Identifier: GPL-3.0-only
 
 # This scripts processes a list of strings from the Linux kernel and
-# compares it to the output of a diffstat to see if they match.
+# compares it to the output of a Git diffstat to see if there are matches.
 #
 # It expects a file with lines that have been extracted from a Linux kernel
 # binary for example:
@@ -13,7 +13,7 @@
 #
 # This script takes two parameters:
 #
-# 1. diffstat listing
+# 1. Git diffstat listing
 # 2. output file as generated above
 
 
