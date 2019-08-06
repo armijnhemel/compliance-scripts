@@ -73,7 +73,7 @@ def main(argv):
         kernelstring = line.strip().split('|', 1)[0].rstrip()
         # skip everything that does not end in .c or .h
         if kernelstring.endswith('.c') or kernelstring.endswith('.h'):
-            diffstats.add(kernelstring)
+            diffstats.add(os.path.normpath(kernelstring))
 
     diffstatfile.close()
 
@@ -83,7 +83,7 @@ def main(argv):
         kernelstring = line.strip()
         # skip everything that does not end in .c or .h
         if kernelstring.endswith('.c') or kernelstring.endswith('.h'):
-            kernelstrings.add(kernelstring)
+            kernelstrings.add(os.path.normpath(kernelstring))
 
     kernelfile.close()
 
