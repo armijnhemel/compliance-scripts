@@ -15,6 +15,11 @@
 #
 # 1. Git diffstat listing
 # 2. output file as generated above
+#
+# A diffstat for a single author can be generated from a Git repository using 'git' and 'diffstat'
+# for example:
+#
+# $ git log -p --author=torvalds | diffstat -p1
 
 
 import sys
