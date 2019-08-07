@@ -55,7 +55,7 @@ def main(argv):
         parser.error("kernel strings file does not exist")
 
     if not os.path.isfile(args.kernelstrings):
-        parser.error("diffstat file is not a file")
+        parser.error("kernel strings file is not a file")
 
     try:
         diffstatfile = open(args.diffstatfile)
