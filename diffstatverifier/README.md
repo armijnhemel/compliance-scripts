@@ -14,6 +14,11 @@ This script takes two parameters:
 1. Git diffstat listing
 2. output file as generated above
 
+To create a diffstat you will first need a local clone of the repository, which
+can be done with "git", for example:
+
+    $ git clone git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+
 A diffstat for a single author can be generated from a Git repository
 using 'git' and 'diffstat', for example:
 
