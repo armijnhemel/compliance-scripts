@@ -8,14 +8,13 @@
 # It requires that ScanCode is invoked with the --full-root option, for
 # example:
 #
-# $ ./scancode --full-root -l -c -e -u --json-pp=/tmp/output.json /path/to/source/directory/
+# $ ./scancode --full-root -l --license-text -c -e -u --json-pp=/tmp/output.json /path/to/source/directory/
 #
 # When scanning the Linux kernel it is highly recommended to take advantage of
 # the parallel processing options that ScanCode offers. For example, to run with
 # eight processes at once:
 #
-# $ ./scancode --full-root -l -c -e -u -n 8 --json-pp=/tmp/output.json /path/to/source/directory/
-
+# $ ./scancode --full-root -l --license-text -c -e -u -n 8 --json-pp=/tmp/output.json /path/to/source/directory/
 
 import sys
 import os
@@ -104,6 +103,9 @@ def main(argv):
 
     filecounter = 1
 
+    # store any full license texts that might have been found
+    license_texts = set()
+
     for f in scjson['files']:
         # skip directories, this needs the source code directory
         # to work correctly
@@ -129,6 +131,10 @@ def main(argv):
                     sclicenses.append(u['spdx_license_key'])
                 else:
                     sclicenses.append(u['short_name'])
+                if u['matched_rule'] is not None:
+                    if u['matched_rule']['is_license_text']:
+                        if 'matched_text' in u:
+                            license_texts.add(u['matched_text'])
 
         if args.ignore_empty:
             if scstatements == set() and sclicenses == []:
@@ -177,6 +183,13 @@ def main(argv):
                 print("Statement(s):\n", file=outfile)
                 for statement in sorted(list(aggregate_statements)):
                     print(statement, file=outfile)
+                print(file=outfile)
+            if license_texts != set():
+                print("License text(s):\n", file=outfile)
+                for license_text in sorted(list(license_texts)):
+                    print(f"{80*'-'}\n", file=outfile)
+                    print(license_text, file=outfile)
+                    print(file=outfile)
                 print(file=outfile)
         elif output_format == 'csv':
             # first write the header

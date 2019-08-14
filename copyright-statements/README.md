@@ -44,11 +44,11 @@ To analyze results:
 
 For example, if the directory /tmp/busybox-1.28.0/ contains source code that needs to be scanned, then ScanCode can be launched as follows (assuming that the "scancode" binary is in a directory in $PATH):
 
-    $ scancode -l -c -e -u -n 8 --full-root --json-pp /tmp/scancode.json /tmp/busybox-1.28.0/
+    $ scancode -l --license-text -c -e -u -n 8 --full-root --json-pp /tmp/scancode.json /tmp/busybox-1.28.0/
 
 If "scancode" is not in a directory in $PATH, you will want to use:
 
-    $ python /path/to/scancode -l -c -e -u -n 8 --full-root --json-pp /tmp/scancode.json /tmp/busybox-1.28.0/
+    $ python /path/to/scancode -l --license-text -c -e -u -n 8 --full-root --json-pp /tmp/scancode.json /tmp/busybox-1.28.0/
 
 This will extract licenses and copyright statements, use 8 threads and write the results to a separate file and it prints the full path (this is necessary, as ScanCode sometimes removes directory names). Then:
 
