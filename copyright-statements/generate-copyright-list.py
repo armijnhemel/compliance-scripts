@@ -3,7 +3,7 @@
 # Copyright Armijn Hemel for Tjaldur Software Governance Solutions
 # SPDX-Identifier: GPL-3.0-only
 
-# This scripts processes output of ScanCode 3.0.x and ouutputs a file
+# This scripts processes output of ScanCode 3.0.x and outputs a file
 # with license information and copyright statements per file.
 # It requires that ScanCode is invoked with the --full-root option, for
 # example:
