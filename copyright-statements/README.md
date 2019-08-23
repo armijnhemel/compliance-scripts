@@ -68,6 +68,7 @@ For each file the following will be printed:
 * the path relative to the root (the parameter given to "-d")
 * any licenses found
 * any copyright statements found
+* any author statements found
 
 For example:
 
