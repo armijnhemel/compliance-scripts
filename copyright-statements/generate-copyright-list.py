@@ -161,19 +161,19 @@ def main(argv):
         if output_format == 'text':
             print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
             if sclicenses != []:
-                print("License(s): %s" % sclicenses[0], file=outfile)
+                print("License(s):\n%s" % sclicenses[0], file=outfile)
                 if len(sclicenses) > 1:
                     for i in sclicenses[1:]:
                         print(i, file=outfile)
                 print(file=outfile)
             if scstatements != []:
-                print("Statement(s): %s" % scstatements[0], file=outfile)
+                print("Statement(s):\n%s" % scstatements[0], file=outfile)
                 if len(scstatements) > 1:
                     for i in scstatements[1:]:
                         print(i, file=outfile)
                 print(file=outfile)
             if scauthors != []:
-                print("Authors(s): %s" % scauthors[0], file=outfile)
+                print("Authors(s):\n%s" % scauthors[0], file=outfile)
                 if len(scauthors) > 1:
                     for i in scauthors[1:]:
                         print(i, file=outfile)
