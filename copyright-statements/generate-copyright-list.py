@@ -121,7 +121,7 @@ def main(argv):
 
         # store results
         scauthors = set()
-        sclicenses = []
+        sclicenses = set()
         scstatements = set()
         if f['scan_errors'] != []:
             continue
@@ -134,16 +134,16 @@ def main(argv):
         if f['licenses'] != []:
             for u in f['licenses']:
                 if u['spdx_license_key'] is not None:
-                    sclicenses.append(u['spdx_license_key'])
+                    sclicenses.add(u['spdx_license_key'])
                 else:
-                    sclicenses.append(u['short_name'])
+                    sclicenses.add(u['short_name'])
                 if u['matched_rule'] is not None:
                     if u['matched_rule']['is_license_text']:
                         if 'matched_text' in u:
                             license_texts.add(u['matched_text'])
 
         if args.ignore_empty:
-            if scstatements == set() and sclicenses == [] and scauthors == set():
+            if scstatements == set() and sclicenses == set() and scauthors == set():
                 continue
 
         if args.aggregate:
@@ -152,20 +152,20 @@ def main(argv):
             aggregate_authors.update(scauthors)
             continue
 
-        # now pretty print
-        licensestring = ''
-        if sclicenses != []:
-            licensestring = ", ".join(set(sclicenses))
-
         # first convert the copyright statements and author statements to
         # a list so they can be sorted, which is nicer for pretty printing
         scstatements = sorted(list(scstatements))
         scauthors = sorted(list(scauthors))
+        sclicenses = sorted(list(sclicenses))
 
         if output_format == 'text':
             print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
             if sclicenses != []:
-                print("License(s): %s\n" % licensestring, file=outfile)
+                print("License(s): %s" % sclicenses[0], file=outfile)
+                if len(sclicenses) > 1:
+                    for i in sclicenses[1:]:
+                        print(i, file=outfile)
+                print(file=outfile)
             if scstatements != []:
                 print("Statement(s): %s" % scstatements[0], file=outfile)
                 if len(scstatements) > 1:
@@ -183,18 +183,21 @@ def main(argv):
             # copyright statement and author statement
             firststatement = ''
             firstauthor = ''
+            firstlicense = ''
             if scstatements != []:
                 firststatement = scstatements[0]
             if scauthors != []:
                 firstauthor = scauthors[0]
-            csvwriter.writerow([filecounter, f['path'][pathlen:], licensestring, firststatement, firstauthor])
+            if sclicenses != []:
+                firstlicense = sclicenses[0]
+            csvwriter.writerow([filecounter, f['path'][pathlen:], firstlicense, firststatement, firstauthor])
             if scstatements != [] or scauthors != []:
                 isfirst = True
-                for i in itertools.zip_longest(scstatements, scauthors):
+                for i in itertools.zip_longest(sclicenses, scstatements, scauthors):
                     if isfirst:
                         isfirst = False
                         continue
-                    csvwriter.writerow(['', '', '', i[0], i[1]])
+                    csvwriter.writerow(['', '', i[0], i[1], i[2]])
         filecounter += 1
 
     # pretty printing in case results need to be aggregated
