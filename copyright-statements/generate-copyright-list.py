@@ -4,7 +4,9 @@
 # SPDX-Identifier: GPL-3.0-only
 
 # This scripts processes output of ScanCode 3.0.x and outputs a file
-# with license information and copyright statements per file.
+# with license information, author information and copyright statements,
+# either per file, or aggregated.
+#
 # It requires that ScanCode is invoked with the --full-root option, for
 # example:
 #
@@ -98,6 +100,8 @@ def main(argv):
 
     pathlen = len(args.toplevel)
 
+    # data structures for aggregated data
+    # used in case the 'aggregate' flag is set
     aggregate_licenses = set()
     aggregate_statements = set()
     aggregate_authors = set()
@@ -153,6 +157,8 @@ def main(argv):
         if sclicenses != []:
             licensestring = ", ".join(set(sclicenses))
 
+        # first convert the copyright statements and author statements to
+        # a list so they can be sorted, which is nicer for pretty printing
         scstatements = sorted(list(scstatements))
         scauthors = sorted(list(scauthors))
 
@@ -173,6 +179,8 @@ def main(argv):
                         print(i, file=outfile)
                 print(file=outfile)
         elif output_format == 'csv':
+            # create at least one line per file with license,
+            # copyright statement and author statement
             firststatement = ''
             firstauthor = ''
             if scstatements != []:
@@ -189,6 +197,7 @@ def main(argv):
                     csvwriter.writerow(['', '', '', i[0], i[1]])
         filecounter += 1
 
+    # pretty printing in case results need to be aggregated
     if args.aggregate:
         if output_format == 'text':
             if aggregate_licenses != set():
