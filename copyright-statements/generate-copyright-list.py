@@ -115,13 +115,13 @@ def main(argv):
             continue
 
         # store results
-        sccopyrights = []
+        scauthors = []
         sclicenses = []
         scstatements = set()
         if f['scan_errors'] != []:
             continue
         if f['authors'] != []:
-            sccopyrights += f['authors']
+            scauthors += f['authors']
         if f['copyrights'] != []:
             for u in f['copyrights']:
                 scstatements.add(u['value'])
