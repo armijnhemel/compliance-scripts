@@ -139,7 +139,7 @@ def main(argv):
                             license_texts.add(u['matched_text'])
 
         if args.ignore_empty:
-            if scstatements == set() and sclicenses == []:
+            if scstatements == set() and sclicenses == [] and scauthors == set():
                 continue
 
         if args.aggregate:
