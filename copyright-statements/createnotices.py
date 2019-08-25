@@ -125,9 +125,8 @@ def main(argv):
     # later. If no aggregation is used then the results will be printed
     # for each result immediately.
     for f in scjson['files']:
-        # skip directories, this needs the source code directory
-        # to work correctly
-        if os.path.isdir(f['path']):
+        # skip anything but files
+        if f['type'] != 'file':
             continue
         if os.path.basename(f['path']) in ignore:
             continue
