@@ -72,7 +72,15 @@ def main(argv):
         print("Cannot parse ScanCode JSON, exiting", file=sys.stderr)
         sys.exit(1)
 
+    # store if a real file was opened, or stdout is used
     outfile_opened = False
+
+    # store whether or not the spdx master data repo
+    # has been added as a submodule
+    have_spdx_data = False
+    if os.path.exists('license-list-data/text'):
+        have_spdx_data = True
+        spdxdir = 'license-list-data/text'
 
     if output_format == 'csv':
         try:
@@ -106,6 +114,7 @@ def main(argv):
     aggregate_statements = set()
     aggregate_authors = set()
     aggregate_license_texts = set()
+    aggregate_license_text_references = set()
 
     filecounter = 1
 
@@ -124,6 +133,7 @@ def main(argv):
         sclicense_statements = set()
         scstatements = set()
         sclicense_texts = set()
+        sclicense_text_references = set()
         if f['scan_errors'] != []:
             continue
         if f['authors'] != []:
@@ -136,12 +146,24 @@ def main(argv):
             for u in f['licenses']:
                 if u['spdx_license_key'] is not None:
                     sclicense_statements.add(u['spdx_license_key'])
+                    license_key = u['spdx_license_key']
                 else:
                     sclicense_statements.add(u['short_name'])
+                    license_key = u['short_name']
                 if u['matched_rule'] is not None:
                     if u['matched_rule']['is_license_text']:
                         if 'matched_text' in u:
                             sclicense_texts.add(u['matched_text'])
+                    # add SPDX reference text if no full license text could be extracted
+                    else:
+                        if have_spdx_data:
+                            spdxpath = os.path.join(spdxdir, '%s.txt' % license_key)
+                            if os.path.exists(spdxpath):
+                                spdxfile = open(spdxpath, 'r')
+                                spdxdata = spdxfile.read()
+                                sclicense_text_references.add(spdxdata)
+                                sclicense_texts.add(spdxdata)
+                                spdxfile.close()
 
         if args.ignore_empty:
             if scstatements == set() and sclicense_statements == set() and scauthors == set():
@@ -150,6 +172,7 @@ def main(argv):
         if args.aggregate:
             aggregate_license_statements.update(sclicense_statements)
             aggregate_license_texts.update(sclicense_texts)
+            aggregate_license_text_references.update(sclicense_text_references)
             aggregate_statements.update(scstatements)
             aggregate_authors.update(scauthors)
             continue
@@ -160,6 +183,7 @@ def main(argv):
         scauthors = sorted(list(scauthors))
         sclicense_statements = sorted(list(sclicense_statements))
         sclicense_texts = sorted(list(sclicense_texts))
+        #sclicense_text_references = sorted(list(sclicense_text_references))
 
         if output_format == 'text':
             print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
