@@ -82,7 +82,7 @@ def main(argv):
             sys.exit(1)
         csvwriter = csv.writer(outfile)
         if not args.aggregate:
-            csvwriter.writerow(['Nr', 'File', 'License(s)', 'Statement(s)', 'Author(s)'])
+            csvwriter.writerow(['Nr', 'File', 'License(s)', 'License text(s)', 'Statement(s)', 'Author(s)'])
         outfile_opened = True
     elif output_format == 'text':
         if args.output_file is not None:
@@ -102,14 +102,14 @@ def main(argv):
 
     # data structures for aggregated data
     # used in case the 'aggregate' flag is set
-    aggregate_licenses = set()
+    aggregate_license_statements = set()
     aggregate_statements = set()
     aggregate_authors = set()
+    aggregate_license_texts = set()
 
     filecounter = 1
 
     # store any full license texts that might have been found
-    license_texts = set()
 
     for f in scjson['files']:
         # skip directories, this needs the source code directory
@@ -121,8 +121,9 @@ def main(argv):
 
         # store results
         scauthors = set()
-        sclicenses = set()
+        sclicense_statements = set()
         scstatements = set()
+        sclicense_texts = set()
         if f['scan_errors'] != []:
             continue
         if f['authors'] != []:
@@ -134,20 +135,21 @@ def main(argv):
         if f['licenses'] != []:
             for u in f['licenses']:
                 if u['spdx_license_key'] is not None:
-                    sclicenses.add(u['spdx_license_key'])
+                    sclicense_statements.add(u['spdx_license_key'])
                 else:
-                    sclicenses.add(u['short_name'])
+                    sclicense_statements.add(u['short_name'])
                 if u['matched_rule'] is not None:
                     if u['matched_rule']['is_license_text']:
                         if 'matched_text' in u:
-                            license_texts.add(u['matched_text'])
+                            sclicense_texts.add(u['matched_text'])
 
         if args.ignore_empty:
-            if scstatements == set() and sclicenses == set() and scauthors == set():
+            if scstatements == set() and sclicense_statements == set() and scauthors == set():
                 continue
 
         if args.aggregate:
-            aggregate_licenses.update(sclicenses)
+            aggregate_license_statements.update(sclicense_statements)
+            aggregate_license_texts.update(sclicense_texts)
             aggregate_statements.update(scstatements)
             aggregate_authors.update(scauthors)
             continue
@@ -156,14 +158,15 @@ def main(argv):
         # a list so they can be sorted, which is nicer for pretty printing
         scstatements = sorted(list(scstatements))
         scauthors = sorted(list(scauthors))
-        sclicenses = sorted(list(sclicenses))
+        sclicense_statements = sorted(list(sclicense_statements))
+        sclicense_texts = sorted(list(sclicense_texts))
 
         if output_format == 'text':
             print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
-            if sclicenses != []:
-                print("License(s):\n%s" % sclicenses[0], file=outfile)
-                if len(sclicenses) > 1:
-                    for i in sclicenses[1:]:
+            if sclicense_statements != []:
+                print("License(s):\n%s" % sclicense_statements[0], file=outfile)
+                if len(sclicense_statements) > 1:
+                    for i in sclicense_statements[1:]:
                         print(i, file=outfile)
                 print(file=outfile)
             if scstatements != []:
@@ -178,34 +181,43 @@ def main(argv):
                     for i in scauthors[1:]:
                         print(i, file=outfile)
                 print(file=outfile)
+            if sclicense_texts != []:
+                print("License text(s):\n%s" % sclicense_texts[0], file=outfile)
+                if len(sclicense_texts) > 1:
+                    for i in sclicense_texts[1:]:
+                        print(i, file=outfile)
+                print(file=outfile)
         elif output_format == 'csv':
-            # create at least one line per file with license,
-            # copyright statement and author statement
-            firststatement = ''
-            firstauthor = ''
-            firstlicense = ''
+            # create at least one line per file with license statement,
+            # license text, copyright statement and author statement
+            first_copyright_statement = ''
+            first_author_statement = ''
+            first_license_statement = ''
+            first_license_text = ''
             if scstatements != []:
-                firststatement = scstatements[0]
+                first_copyright_statement = scstatements[0]
             if scauthors != []:
-                firstauthor = scauthors[0]
-            if sclicenses != []:
-                firstlicense = sclicenses[0]
-            csvwriter.writerow([filecounter, f['path'][pathlen:], firstlicense, firststatement, firstauthor])
+                first_author_statement = scauthors[0]
+            if sclicense_statements != []:
+                first_license_statement = sclicense_statements[0]
+            if sclicense_texts != []:
+                first_license_text = sclicense_texts[0]
+            csvwriter.writerow([filecounter, f['path'][pathlen:], first_license_statement, first_license_text, first_copyright_statement, first_author_statement])
             if scstatements != [] or scauthors != []:
                 isfirst = True
-                for i in itertools.zip_longest(sclicenses, scstatements, scauthors):
+                for i in itertools.zip_longest(sclicense_statements, sclicense_texts, scstatements, scauthors):
                     if isfirst:
                         isfirst = False
                         continue
-                    csvwriter.writerow(['', '', i[0], i[1], i[2]])
+                    csvwriter.writerow(['', '', i[0], i[1], i[2], i[3]])
         filecounter += 1
 
     # pretty printing in case results need to be aggregated
     if args.aggregate:
         if output_format == 'text':
-            if aggregate_licenses != set():
+            if aggregate_license_statements != set():
                 print("License(s):\n", file=outfile)
-                for lic in sorted(list(aggregate_licenses)):
+                for lic in sorted(list(aggregate_license_statements)):
                     print(lic, file=outfile)
                 print(file=outfile)
             if aggregate_statements != set():
@@ -218,20 +230,21 @@ def main(argv):
                 for statement in sorted(list(aggregate_authors)):
                     print(statement, file=outfile)
                 print(file=outfile)
-            if license_texts != set():
+            if aggregate_license_texts != set():
                 print("License text(s):\n", file=outfile)
-                for license_text in sorted(list(license_texts)):
+                for license_text in sorted(list(aggregate_license_texts)):
                     print(f"{80*'-'}\n", file=outfile)
                     print(license_text, file=outfile)
                     print(file=outfile)
                 print(file=outfile)
         elif output_format == 'csv':
             # first write the header
-            csvwriter.writerow(['License(s)', 'Statement(s)', 'Author(s)'])
-            licenses = sorted(list(aggregate_licenses))
-            statements = sorted(list(aggregate_statements))
+            csvwriter.writerow(['License(s)', 'License text(s)', 'Statement(s)', 'Author(s)'])
+            license_statements = sorted(list(aggregate_license_statements))
+            license_texts = sorted(list(aggregate_license_texts))
+            copyright_statements = sorted(list(aggregate_statements))
             authors = sorted(list(aggregate_authors))
-            for i in itertools.zip_longest(licenses, statements, authors):
+            for i in itertools.zip_longest(license_statements, license_texts, copyright_statements, authors):
                 csvwriter.writerow(i)
 
     if outfile_opened:
