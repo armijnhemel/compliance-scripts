@@ -1,4 +1,11 @@
-Script that takes a JSON output file from ScanCode, plus a directory path, and generates a simple copyright notices file in text or CSV format. This is a very rough proof of concept script.
+Script that takes a JSON output file from ScanCode, plus a directory path, and generates a simple notices file in text or CSV format. Included will be:
+
+* license statements (in SPDX notation, or what ScanCode reports in case there is no SPDX equivalent)
+* license texts (as extracted from the source code by ScanCode)
+* copyright statements (as extracted by ScanCode)
+* author statements (as extracted by ScanCode)
+
+This is a very rough proof of concept script and results should not be used in a production environment, but could serve as a starting point for a proper notices file for inclusion in a product.
 
 The following should be noted: this script only processes what ScanCode reports. If there is a bug in ScanCode, or if the output from ScanCode is not complete because it does not recognize for example a copyright statement or author statement, then it will not magically appear in the report. It should be noted that ScanCode will not catch every copyright/author statement.
 
@@ -102,3 +109,5 @@ If only results with results should be processed you can specify a flag to ignor
 If results should be aggregated instead of printed per file:
 
     $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a
+
+It should be noted that when using aggregation in CSV mode the columns of the CSV file should be treated as independent columns. That means that in a row the results in the different columns will not be related to eachother.
