@@ -21,6 +21,8 @@ SPDX-Identifier: GPL-3.0-only.
 
 # Adding the SPDX license list data
 
+This script can optionally use data from the official SPDX repository. In case ScanCode did not manage to extract a license text the reference text from the SPDX repository can be used (although the script will also function without this data).
+
 If you have downloaded the code from a snapshot:
 
 1. remove the directory 'license-list-data'
