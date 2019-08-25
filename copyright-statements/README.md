@@ -1,7 +1,7 @@
 Script that takes a JSON output file from ScanCode, plus a directory path, and generates a simple notices file in text or CSV format. Included will be:
 
 * license statements (in SPDX notation, or what ScanCode reports in case there is no SPDX equivalent)
-* license texts (as extracted from the source code by ScanCode)
+* license texts (as extracted from the source code by ScanCode, or standard text from the SPDX license list data files in case no license text was extracted and there is a reference license text)
 * copyright statements (as extracted by ScanCode)
 * author statements (as extracted by ScanCode)
 
