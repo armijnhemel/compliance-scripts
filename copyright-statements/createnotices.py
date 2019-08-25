@@ -114,7 +114,7 @@ def main(argv):
     aggregate_statements = set()
     aggregate_authors = set()
     aggregate_license_texts = set()
-    aggregate_license_text_references = set()
+    aggregate_license_spdx_texts = set()
 
     filecounter = 1
 
@@ -131,7 +131,8 @@ def main(argv):
         sclicense_statements = set()
         scstatements = set()
         sclicense_texts = set()
-        sclicense_text_references = set()
+        sclicense_spdx_texts = set()
+
         if f['scan_errors'] != []:
             continue
         if f['authors'] != []:
@@ -159,7 +160,7 @@ def main(argv):
                             if os.path.exists(spdxpath):
                                 spdxfile = open(spdxpath, 'r')
                                 spdxdata = spdxfile.read()
-                                sclicense_text_references.add(spdxdata)
+                                sclicense_spdx_texts.add(spdxdata)
                                 sclicense_texts.add(spdxdata)
                                 spdxfile.close()
 
@@ -170,7 +171,7 @@ def main(argv):
         if args.aggregate:
             aggregate_license_statements.update(sclicense_statements)
             aggregate_license_texts.update(sclicense_texts)
-            aggregate_license_text_references.update(sclicense_text_references)
+            aggregate_license_spdx_texts.update(sclicense_spdx_texts)
             aggregate_statements.update(scstatements)
             aggregate_authors.update(scauthors)
             continue
@@ -181,7 +182,7 @@ def main(argv):
         scauthors = sorted(list(scauthors))
         sclicense_statements = sorted(list(sclicense_statements))
         sclicense_texts = sorted(list(sclicense_texts))
-        #sclicense_text_references = sorted(list(sclicense_text_references))
+        #sclicense_spdx_texts = sorted(list(sclicense_spdx_texts))
 
         if output_format == 'text':
             print("%d - %s\n" % (filecounter, f['path'][pathlen:]), file=outfile)
