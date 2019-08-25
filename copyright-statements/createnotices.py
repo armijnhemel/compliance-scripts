@@ -233,7 +233,8 @@ def main(argv):
             if aggregate_license_texts != set():
                 print("License text(s):\n", file=outfile)
                 for license_text in sorted(list(aggregate_license_texts)):
-                    print(f"{80*'-'}\n", file=outfile)
+                    print(80*'-', file=outfile)
+                    print(file=outfile)
                     print(license_text, file=outfile)
                     print(file=outfile)
                 print(file=outfile)
