@@ -19,6 +19,18 @@ This script is licensed under the GNU GPL 3 license.
 
 SPDX-Identifier: GPL-3.0-only.
 
+# Adding the SPDX license list data
+
+If you have downloaded the code from a snapshot:
+
+1. remove the directory 'license-list-data'
+2. clone or download https://github.com/spdx/license-list-data and make sure that the data is unpacked to 'license-list-data'
+
+If you have used Git you should do the following:
+
+    $ git submodule init
+    $ git submodule update
+
 # Running the script
 
 You can find the help for the program by running the following command:
