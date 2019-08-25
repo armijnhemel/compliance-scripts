@@ -23,12 +23,12 @@ SPDX-Identifier: GPL-3.0-only.
 
 You can find the help for the program by running the following command:
 
-    $ python3 generate-copyright-list.py --help
+    $ python3 createnotices.py --help
 
 which will print:
 
-    usage: generate-copyright-list.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT]
-                                      [-o FILE] [-z IGNORE_EMPTY] [-a AGGREGATE]
+    usage: createnotices.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT]
+                            [-o FILE] [-z IGNORE_EMPTY] [-a AGGREGATE]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -47,7 +47,7 @@ which will print:
 
 To analyze results:
 
-    $ python3 generate-copyright-list.py -j /path/to/scancode/json -d /path/to/source/code/directory
+    $ python3 createnotices.py -j /path/to/scancode/json -d /path/to/source/code/directory
 
 For example, if the directory /tmp/busybox-1.28.0/ contains source code that needs to be scanned, then ScanCode can be launched as follows (assuming that the "scancode" binary is in a directory in $PATH):
 
@@ -59,11 +59,11 @@ If "scancode" is not in a directory in $PATH, you will want to use:
 
 This will extract licenses and copyright statements, use 8 threads and write the results to a separate file and it prints the full path (this is necessary, as ScanCode sometimes removes directory names). Then:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/
+    $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/
 
 This will print a lot of data on standard out. If you want to write it to a file you can supply a parameter:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt
+    $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt
 
 The command above will write the results to the file /tmp/copyrights.txt.
 
@@ -92,7 +92,7 @@ For example:
 
 Data can also be written to CSV:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -f csv -o /tmp/copyrights.csv
+    $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -f csv -o /tmp/copyrights.csv
 
 Licenses will be concatenated, but copyright/author statements will not be and
 if there is more than one author/copyright statement a new row will be used
@@ -102,12 +102,12 @@ for each statement > 1.
 
 If only results with results should be processed you can specify a flag to ignore all empty results:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z
+    $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -z
 
 ## Aggregating results
 
 If results should be aggregated instead of printed per file:
 
-    $ python3 generate-copyright-list.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a
+    $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a
 
 It should be noted that when using aggregation in CSV mode the columns of the CSV file should be treated as independent columns. That means that in a row the results in the different columns will not be related to eachother.
