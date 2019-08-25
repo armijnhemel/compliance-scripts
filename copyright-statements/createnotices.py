@@ -118,8 +118,6 @@ def main(argv):
 
     filecounter = 1
 
-    # store any full license texts that might have been found
-
     for f in scjson['files']:
         # skip directories, this needs the source code directory
         # to work correctly
