@@ -43,6 +43,8 @@ def main(argv):
                         help="Ignore empty results")
     parser.add_argument("-a", "--aggregate", action="store_true", dest="aggregate",
                         help="Aggregate results")
+    parser.add_argument("-e", "--extended", action="store_true", dest="extended",
+                        help="Extended aggregated results")
     args = parser.parse_args()
 
     # sanity checks for the various options
@@ -183,6 +185,10 @@ def main(argv):
             aggregate_authors.update(scauthors)
             continue
 
+        if args.extended:
+            aggregate_license_texts.update(sclicense_texts)
+            aggregate_license_spdx_texts.update(sclicense_spdx_texts)
+
         # first convert the copyright statements and author statements to
         # a list so they can be sorted, which is nicer for pretty printing
         scstatements = sorted(list(scstatements))
@@ -211,7 +217,7 @@ def main(argv):
                     for i in scauthors[1:]:
                         print(i, file=outfile)
                 print(file=outfile)
-            if sclicense_texts != []:
+            if sclicense_texts != [] and not args.extended:
                 print("License text(s):\n%s" % sclicense_texts[0], file=outfile)
                 if len(sclicense_texts) > 1:
                     for i in sclicense_texts[1:]:
@@ -278,6 +284,16 @@ def main(argv):
             for i in itertools.zip_longest(license_statements, license_texts, copyright_statements, authors):
                 csvwriter.writerow(i)
 
+    if args.extended:
+        if output_format == 'text':
+            if aggregate_license_texts != set():
+                print("License text(s):\n", file=outfile)
+                for license_text in sorted(list(aggregate_license_texts)):
+                    print(80*'-', file=outfile)
+                    print(file=outfile)
+                    print(license_text, file=outfile)
+                    print(file=outfile)
+                print(file=outfile)
     if outfile_opened:
         outfile.close()
 
