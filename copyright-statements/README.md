@@ -41,8 +41,8 @@ You can find the help for the program by running the following command:
 
 which will print:
 
-    usage: createnotices.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT]
-                            [-o FILE] [-z IGNORE_EMPTY] [-a AGGREGATE]
+usage: createnotices.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT] [-o FILE]
+                        [-z] [-a] [-e]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -54,10 +54,9 @@ which will print:
                             (default)
       -o FILE, --output-file FILE
                             output file (mandatory for 'csv', otherwise stdout)
-      -z IGNORE_EMPTY, --ignore-empty IGNORE_EMPTY
-                            Ignore empty results (default: no)
-      -a AGGREGATE, --aggregate AGGREGATE
-                            Aggregate results (default: no)
+      -z, --ignore-empty    Ignore empty results
+      -a, --aggregate       Aggregate results
+      -e, --extended        Extended aggregated results
 
 To analyze results:
 
@@ -125,3 +124,9 @@ If results should be aggregated instead of printed per file:
     $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -a
 
 It should be noted that when using aggregation in CSV mode the columns of the CSV file should be treated as independent columns. That means that in a row the results in the different columns will not be related to eachother.
+
+## Extended aggregate results
+
+A mix of the full and the aggregate formats is called "extended aggregate" (better name suggestions welcome!). In this mode all results will be printed per file, except the license texts (either extracted or the SPDX reference texts). The license texts (either extracted or the SPDX reference texts) will be aggregated and printed just once. This mode is only supported for text files.
+
+    $ python3 createnotices.py -j /tmp/scancode.json -d /tmp/busybox-1.28.0/ -o /tmp/copyrights.txt -e
