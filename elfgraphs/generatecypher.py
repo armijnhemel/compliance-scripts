@@ -37,7 +37,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-only
 #
-# Copyright 2018 - Armijn Hemel
+# Copyright 2018-2019 - Armijn Hemel, Tjaldur Software Governance Solutions
 
 import sys
 import os
