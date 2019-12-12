@@ -3,10 +3,14 @@ background information either skip to the end of this file or read:
 
 https://lwn.net/Articles/548216/
 
+The scripts can output in several formats. Currently supported:
+
+* Cypher (Neo4J)
+
 # Requirements
 
-* Python3 (3.6)
-* Neo4J (tested with 3.4.9 community edition)
+* Python3 (>= 3.6)
+* Neo4J (tested with 3.4.9 community edition) to load the resulting Cypher files
 * pyelftools (tested with python3-pyelftools-0.24-1.fc28.noarch)
 
 # License
@@ -15,7 +19,7 @@ Licensed under the terms of the General Public License version 3
 
 SPDX-License-Identifier: GPL-3.0-only
 
-Copyright 2018 - Armijn Hemel
+Copyright 2018-2019 - Armijn Hemel
 
 # Getting Neo4J
 
