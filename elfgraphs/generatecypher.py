@@ -93,6 +93,7 @@ def main(argv):
     if args.outpuformat is not None:
         if args.outputformat not in supported_formats:
             parser.error("Unsupported output format %s" % args.outputformat)
+        outputformat = args.outputformat
 
     # then some checks for the configuration file
     if args.cfg is None:
@@ -114,30 +115,31 @@ def main(argv):
     # process the configuration file and store settings
     config_settings = {}
 
-    cypherdir = None
+    outputdir = None
     for section in config.sections():
-        if section == 'cypher':
-            try:
-                cypherdir = config.get(section, 'cypherdir')
-            except:
-                print("Directory to write Cypher files not configured",
-                      file=sys.stderr)
-                configfile.close()
-                sys.exit(1)
-            if not os.path.exists(cypherdir):
-                print("Directory to write Cypher files does not exist",
-                      file=sys.stderr)
-                configfile.close()
-                sys.exit(1)
-            if not os.path.isdir(cypherdir):
-                print("Directory to write Cypher files is not a directory",
-                      file=sys.stderr)
-                configfile.close()
-                sys.exit(1)
+        if outputformat == 'cypher':
+            if section == 'cypher':
+                try:
+                    outputdir = config.get(section, 'cypherdir')
+                except:
+                    print("Directory to write Cypher files not configured",
+                          file=sys.stderr)
+                    configfile.close()
+                    sys.exit(1)
+                if not os.path.exists(outputdir):
+                    print("Directory to write Cypher files does not exist",
+                          file=sys.stderr)
+                    configfile.close()
+                    sys.exit(1)
+                if not os.path.isdir(outputdir):
+                    print("Directory to write Cypher files is not a directory",
+                          file=sys.stderr)
+                    configfile.close()
+                    sys.exit(1)
     configfile.close()
 
-    if cypherdir is None:
-        print("Directory to write Cypher files not configured",
+    if outputdir is None:
+        print("Directory to write output files to not configured",
               file=sys.stderr)
         sys.exit(1)
 
@@ -363,7 +365,7 @@ def main(argv):
                         allplaceholdernames.add(placeholdername)
 
                     # write the data to a Cypher file
-                    cypherfile = tempfile.mkstemp(dir=cypherdir,
+                    cypherfile = tempfile.mkstemp(dir=outputdir,
                                                   suffix='.cypher')
                     os.fdopen(cypherfile[0]).close()
                     cypherfileopen = open(cypherfile[1], 'w')
