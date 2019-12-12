@@ -77,14 +77,13 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
 
                     # first generate place holder names for every binary
                     for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        # first generate a placeholder name
-                        # from Python3 docs
+                        # Create a placeholder name and check if it already exists. If so
+                        # generate and check a new name until one is found that doesn't exist.
+                        #
+                        # Taken from the Python3 documentation:
                         # https://docs.python.org/3/library/secrets.html#recipes-and-best-practices
                         while True:
                             placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
-                            # check if the placeholder name already exists. If not all's fine,
-                            # else generate a new placeholder name until one is found that doesn't
-                            # already exist.
                             if placeholdername not in placeholder_to_elf and placeholdername not in all_placeholder_names:
                                 placeholder_to_elf[placeholdername] = filename
                                 break
@@ -162,6 +161,8 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
                                 continue
                             cypherfileopen.write(", \n")
                             cypherfileopen.write("(%s)-[:EXPORTS]->(%s)" % (elf_to_placeholder[filename], symbol_to_placeholder[(exp['name'], exp['type'])]))
+
+                    # store which files use which symbols
                     for filename in machine_to_binary[architecture][o][endian][elfclass]:
                         for imp in elf_to_imported_symbols[filename]:
                             if imp['bind'] == 'LOCAL':
