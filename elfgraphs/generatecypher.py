@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # This script walks a directory of files extracts symbols from ELF files,
 # records dependencies (taking symbolic links and RPATH into account) and
