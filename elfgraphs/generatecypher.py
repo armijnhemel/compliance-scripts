@@ -173,7 +173,10 @@ def main(argv):
                     # of the actual name of the dependency, so try to
                     # resolve it.
                     # First find out the target of the symbolic link
-                    targetfile = os.readlink(symlinkname)
+                    try:
+                        targetfile = os.readlink(symlinkname)
+                    except:
+                        continue
 
                     # Then start resolving the symbolic link to actua files.
                     # In case the target is absolute it should be made
