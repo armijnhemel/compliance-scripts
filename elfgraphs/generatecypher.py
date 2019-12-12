@@ -313,7 +313,7 @@ def main(argv):
                     except:
                         continue
 
-                    # Then start resolving the symbolic link to actua files.
+                    # Then start resolving the symbolic link to actual files.
                     # In case the target is absolute it should be made
                     # relative to the root of the scanning directory,
                     # otherwise it is relative to the current directory.
@@ -322,6 +322,7 @@ def main(argv):
                         targetfile = os.path.join(dirtoscan, targetfile)
                     else:
                         targetfile = os.path.normpath(os.path.join(direntry[0], targetfile))
+
                     # then recursively check whether or not symbolic links
                     # point to other symbolic links or to paths that exist
                     if os.path.islink(targetfile):
@@ -332,9 +333,11 @@ def main(argv):
                             break
                         seensymlinks.add(targetfile)
                         continue
+
                     if not os.path.isfile(targetfile):
+                        # symbolic links have already been processed, and
                         # anything else but a file (directories, pipes,
-                        # sockets, etc.) can be ignored
+                        # sockets, etc.) can be safely ignored
                         break
                     else:
                         # the target is an actual file
@@ -343,8 +346,9 @@ def main(argv):
                 continue
 
             if not os.path.isfile(fullfilename):
-                # anything else but a file (directories, pipes, sockets, etc.)
-                # can be ignored
+                # symbolic links have already been processed, and
+                # anything else but a file (directories, pipes,
+                # sockets, etc.) can be safely ignored
                 continue
 
             # then do a first check to see if a file can be a valid ELF
@@ -357,12 +361,13 @@ def main(argv):
                 if databytes != b'\x7f\x45\x4c\x46':
                     continue
             except:
+                # for some reason the file cannot be read
                 continue
 
             dynamicelf = False
 
             # first check whether or not this is a dynamically linked
-            # ELF file plus already load a few data structures into memory
+            # ELF file. Already load a few data structures into memory
             # that will be used later on as well.
             openedelffile = open(fullfilename, 'rb')
             elffilerepresentation = elftools.elf.elffile.ELFFile(openedelffile)
@@ -372,23 +377,31 @@ def main(argv):
                     dynamicelf = True
                     break
 
-            # statically linked binary, not interesting for now
+            # statically linked binary, or not a regular ELF file,
+            # not interesting for now
             if not dynamicelf:
                 openedelffile.close()
                 continue
 
-            # now split the files according to their architecture, class
-            # operating system, and so on. The exact values used are
-            # irrelevant as they are not used anywhere else.
+            # now split the files according to their architecture,
+            # operating system, and so on. The exact values are
+            # irrelevant as they are not used anywhere else in the program
+            # (they might be interesting for reporting).
+            # Although in most cases there will only be one architecture,
+            # operating system, and so on, sometimes files for other
+            # architectures are found.
             architecture = elfheader['e_machine']
             elf_endian = elffilerepresentation.little_endian
             operating_system = elfheader['e_ident']['EI_OSABI']
             elfclass = elffilerepresentation.elfclass
 
+            # the current architecture is not yet found, so create
+            # the necessary data structures
             if architecture not in machine_to_binary:
                 machine_to_binary[architecture] = {}
 
-            # extract and store the operating system
+            # extract and store the operating system. If it isn't
+            # yet known create the necessary data structures
             if operating_system not in machine_to_binary[architecture]:
                 machine_to_binary[architecture][operating_system] = {}
 
@@ -408,18 +421,17 @@ def main(argv):
                 filename_to_full_path[os.path.basename(fullfilename)] = set()
             filename_to_full_path[os.path.basename(fullfilename)].add(relfullfilename)
 
-            # Record the symbols and linked libraries
-            # The imported ones (UND in readelf) will be in 'imports'
-            # and the exported ones will be in 'exports'
-            # Linked libraries will be in 'libs'
-            # first initialize
+            # Record the symbols and linked libraries found in each ELF binary:
+            # * imported ones (UND in readelf) will be in 'imports'
+            # * the exported ones will be in 'exports'
+            # * linked libraries will be in 'libs'
             elf_to_imported_symbols[relfullfilename] = []
             elf_to_exported_symbols[relfullfilename] = []
             linked_libraries[relfullfilename] = []
 
-            for sec in elffilerepresentation.iter_sections():
-                if isinstance(sec, elftools.elf.sections.SymbolTableSection):
-                    for symbol in sec.iter_symbols():
+            for section in elffilerepresentation.iter_sections():
+                if isinstance(section, elftools.elf.sections.SymbolTableSection):
+                    for symbol in section.iter_symbols():
                         store_symbol = {}
                         if symbol['st_size'] == 0:
                             continue
@@ -451,8 +463,8 @@ def main(argv):
                             elf_to_imported_symbols[relfullfilename].append(store_symbol)
                         else:
                             elf_to_exported_symbols[relfullfilename].append(store_symbol)
-                elif isinstance(sec, elftools.elf.dynamic.DynamicSection):
-                    for tag in sec.iter_tags():
+                elif isinstance(section, elftools.elf.dynamic.DynamicSection):
+                    for tag in section.iter_tags():
                         if tag.entry.d_tag == 'DT_NEEDED':
                             linkedname = tag.needed
                             linked_libraries[relfullfilename].append(linkedname)
