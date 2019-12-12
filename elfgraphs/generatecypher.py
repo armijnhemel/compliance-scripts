@@ -70,8 +70,8 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
                     elf_to_placeholder = {}
                     placeholder_to_elf = {}
                     symbol_to_placeholder = {}
-                    placeholdertosymbol = {}
-                    allplaceholdernames = set()
+                    placeholder_to_symbol = {}
+                    all_placeholder_names = set()
                     if machine_to_binary[architecture][o][endian][elfclass] == set():
                         continue
 
@@ -85,11 +85,11 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
                             # check if the placeholder name already exists. If not all's fine,
                             # else generate a new placeholder name until one is found that doesn't
                             # already exist.
-                            if placeholdername not in placeholder_to_elf and placeholdername not in allplaceholdernames:
+                            if placeholdername not in placeholder_to_elf and placeholdername not in all_placeholder_names:
                                 placeholder_to_elf[placeholdername] = filename
                                 break
                         elf_to_placeholder[filename] = placeholdername
-                        allplaceholdernames.add(placeholdername)
+                        all_placeholder_names.add(placeholdername)
 
                     # write the data to a Cypher file
                     cypherfile = tempfile.mkstemp(dir=outputdir,
@@ -144,11 +144,11 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
                         (symbolname, symboltype, symbolbinding) = exp
                         while True:
                             placeholdername = ''.join(secrets.choice(string.ascii_letters) for i in range(8))
-                            if placeholdername not in placeholdertosymbol and placeholdername not in allplaceholdernames:
-                                placeholdertosymbol[placeholdername] = symbolname
+                            if placeholdername not in placeholder_to_symbol and placeholdername not in all_placeholder_names:
+                                placeholder_to_symbol[placeholdername] = symbolname
                                 break
                         symbol_to_placeholder[(symbolname, symboltype)] = placeholdername
-                        allplaceholdernames.add(placeholdername)
+                        all_placeholder_names.add(placeholdername)
                         cypherfileopen.write(", \n")
                         cypherfileopen.write("(%s:SYMBOL {name: '%s', type: '%s'})" % (symbol_to_placeholder[(symbolname, symboltype)], symbolname, symboltype))
 
