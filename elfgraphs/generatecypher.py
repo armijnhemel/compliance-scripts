@@ -107,7 +107,7 @@ def main(argv):
     configfile = open(args.cfg, 'r')
 
     try:
-        config.readfp(configfile)
+        config.read_file(configfile)
     except Exception:
         print("Cannot read configuration file", file=sys.stderr)
         sys.exit(1)
