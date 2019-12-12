@@ -66,6 +66,9 @@ def main(argv):
     parser.add_argument("-d", "--directory", action="store",
                         dest="dirtoscan",
                         help="path to directory to scan", metavar="DIR")
+    parser.add_argument("-o", "--outputformat", action="store",
+                        dest="outputformat",
+                        help="output format", metavar="FORMAT")
     args = parser.parse_args()
 
     # first some sanity checks for the directory that needs to be scanned
@@ -78,8 +81,18 @@ def main(argv):
     if not os.path.isdir(args.dirtoscan):
         parser.error("%s is not a directory" % args.dirtoscan)
 
-    # first get rid of unnecessary path components
+    # first get rid of unnecessary path components, like '..',
+    # multiple slashes, etc.
     dirtoscan = os.path.normpath(args.dirtoscan)
+
+    #supported_formats = ['text', 'cypher', 'graphviz']
+    supported_formats = ['cypher']
+
+    # check the output format. By default it is cypher.
+    outputformat = 'cypher'
+    if args.outpuformat is not None:
+        if args.outputformat not in supported_formats:
+            parser.error("Unsupported output format %s" % args.outputformat)
 
     # then some checks for the configuration file
     if args.cfg is None:
