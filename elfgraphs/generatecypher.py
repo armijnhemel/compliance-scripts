@@ -72,7 +72,7 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
                     symbol_to_placeholder = {}
                     placeholdertosymbol = {}
                     allplaceholdernames = set()
-                    if len(machine_to_binary[architecture][o][endian][elfclass]) == 0:
+                    if machine_to_binary[architecture][o][endian][elfclass] == set():
                         continue
 
                     # first generate place holder names for every binary
@@ -111,7 +111,7 @@ def createcypher(outputdir, machine_to_binary, linked_libraries,
 
                     # then add all the links
                     for filename in machine_to_binary[architecture][o][endian][elfclass]:
-                        if len(linked_libraries[filename]) != 0:
+                        if linked_libraries[filename] != []:
                             # record the dependencies that are linked with
                             for l in linked_libraries[filename]:
                                 libfound = False
