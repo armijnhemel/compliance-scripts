@@ -90,7 +90,7 @@ def main(argv):
 
     # check the output format. By default it is cypher.
     outputformat = 'cypher'
-    if args.outpuformat is not None:
+    if args.outputformat is not None:
         if args.outputformat not in supported_formats:
             parser.error("Unsupported output format %s" % args.outputformat)
         outputformat = args.outputformat
