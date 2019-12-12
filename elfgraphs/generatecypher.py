@@ -39,13 +39,13 @@
 #
 # Copyright 2018-2019 - Armijn Hemel, Tjaldur Software Governance Solutions
 
-import sys
-import os
-import tempfile
-import string
-import secrets
-import configparser
 import argparse
+import configparser
+import os
+import secrets
+import string
+import sys
+import tempfile
 
 # import pyelftools
 import elftools.elf.elffile
