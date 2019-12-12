@@ -2,7 +2,7 @@
 
 # This script walks a directory of files extracts symbols from ELF files,
 # records dependencies (taking symbolic links and RPATH into account) and
-# constructs Cypher statements to load it into Neo4J to enable queries.
+# generates different types of output.
 #
 # The method works as follows:
 #
@@ -15,7 +15,7 @@
 #       possibly indirect (symbolic links)
 #
 # 2. for each group of binaries (architecture, endianness, etc.) it
-#    will then generate a Cypher file with all the information from 1.
+#    will then generate output files with all the information from 1.
 #
 # The typical use case would be a firmware of an embedded system that
 # has been unpacked first into a separate directory.
