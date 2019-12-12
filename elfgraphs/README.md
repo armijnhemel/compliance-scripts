@@ -11,7 +11,8 @@ The scripts can output in several formats. Currently supported:
 
 * Python3 (>= 3.6)
 * Neo4J (tested with 3.4.9 community edition) to load the resulting Cypher files
-* pyelftools (tested with python3-pyelftools-0.24-1.fc28.noarch)
+* pyelftools (tested with python3-pyelftools-0.25-1.fc30.noarch)
+* python3-graphviz
 
 # License
 
