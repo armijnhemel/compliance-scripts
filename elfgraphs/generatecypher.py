@@ -54,7 +54,7 @@ import elftools.elf.sections
 
 def createcypher(outputdir, machine_to_binary, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
-                 elf_to_imported_symbols, symlink_to_target):
+                 elf_to_imported_symbols):
     '''Create a Cypher file for each set of ELF files that belongs together'''
 
     # create a cypher file for each architecture/operating system
@@ -471,11 +471,20 @@ def main(argv):
                             linked_libraries[relfullfilename].append(linkedname)
             openedelffile.close()
 
+    # for all symlinks copy the data of targets to the symlinks
+    for i in symlink_to_target:
+        if symlink_to_target[i] in elf_to_exported_symbols:
+            elf_to_exported_symbols[i] = elf_to_exported_symbols[symlink_to_target[i]]
+        if symlink_to_target[i] in elf_to_imported_symbols:
+            elf_to_imported_symbols[i] = elf_to_imported_symbols[symlink_to_target[i]]
+        if symlink_to_target[i] in linked_libraries:
+            linked_libraries[i] = linked_libraries[symlink_to_target[i]]
+
     # now generate output
     if outputformat == 'cypher':
         createcypher(outputdir, machine_to_binary, linked_libraries,
                      filename_to_full_path, elf_to_exported_symbols,
-                     elf_to_imported_symbols, symlink_to_target)
+                     elf_to_imported_symbols)
 
 if __name__ == "__main__":
     main(sys.argv)
