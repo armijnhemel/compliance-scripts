@@ -52,6 +52,23 @@ import elftools.elf.elffile
 import elftools.elf.dynamic
 import elftools.elf.sections
 
+def createtext(outputdir, machine_to_binary, linked_libraries,
+                 filename_to_full_path, elf_to_exported_symbols,
+                 elf_to_imported_symbols):
+    '''Create a simple text output for each set of ELF files that belongs together'''
+    # create a text file for each architecture/operating system
+    # combination that was found.
+    #
+    # * file name
+    # * list of dependencies
+    pass
+
+def createdot(outputdir, machine_to_binary, linked_libraries,
+                 filename_to_full_path, elf_to_exported_symbols,
+                 elf_to_imported_symbols):
+    '''Create a Graphviz dot output for each set of ELF files that belongs together'''
+    pass
+
 def createcypher(outputdir, machine_to_binary, linked_libraries,
                  filename_to_full_path, elf_to_exported_symbols,
                  elf_to_imported_symbols):
