@@ -471,7 +471,7 @@ def main(argv):
                             linked_libraries[relfullfilename].append(linkedname)
             openedelffile.close()
 
-    # for all symlinks copy the data of targets to the symlinks
+    # for all symlinks copy some of the data of targets to the symlinks
     for i in symlink_to_target:
         if symlink_to_target[i] in elf_to_exported_symbols:
             elf_to_exported_symbols[i] = elf_to_exported_symbols[symlink_to_target[i]]
