@@ -16,3 +16,17 @@ Makefile
 # Linux kernel build system
 Kconfig
 Kbuild
+
+# RPM stuff
+.spec
+.spec.in
+
+# generated files
+.gmo
+
+# translations
+.po
+
+# Postscript and PDF
+.ps
+.pdf
