@@ -9,6 +9,9 @@ ltmain.sh
 missing
 test-driver
 libtool.m4
+Makefile.in
+aclocal.m4
+.m4
 
 # generic make file stuff
 Makefile
