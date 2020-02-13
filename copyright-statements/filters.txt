@@ -1,5 +1,18 @@
+# autotools generated stuff and libtool files. There is often some GPL license statement in there.
 configure.ac
 config.guess
+config.sub
+compile
+configure
+depcomp
+ltmain.sh
+missing
+test-driver
+libtool.m4
+
+# generic make file stuff
 Makefile
+
+# Linux kernel build system
 Kconfig
 Kbuild
