@@ -1,2 +1,5 @@
 configure.ac
 config.guess
+Makefile
+Kconfig
+Kbuild

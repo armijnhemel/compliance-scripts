@@ -135,9 +135,6 @@ def main(argv):
         else:
             outfile = sys.stdout
 
-    # a set of file names to ignore, should be made configurable (TODO)
-    ignore = set(['Makefile', 'Kconfig', 'Kbuild'])
-
     pathlen = len(args.toplevel)
 
     # data structures for aggregated data
@@ -157,8 +154,6 @@ def main(argv):
     for f in scjson['files']:
         # skip anything but files
         if f['type'] != 'file':
-            continue
-        if os.path.basename(f['path']) in ignore:
             continue
         skip = False
         for filterpattern in filterpatterns:
