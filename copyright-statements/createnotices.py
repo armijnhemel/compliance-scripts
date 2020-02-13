@@ -45,6 +45,8 @@ def main(argv):
                         help="Aggregate results")
     parser.add_argument("-e", "--extended", action="store_true", dest="extended",
                         help="Extended aggregated results")
+    parser.add_argument("-i", "--filter-patterns", action="store", dest="filterpatterns",
+                        help="file with filter patterns (extensions)", metavar="FILE")
     args = parser.parse_args()
 
     # sanity checks for the various options
@@ -56,6 +58,32 @@ def main(argv):
 
     if not os.path.isfile(args.jsonfile):
         parser.error("ScanCode JSON file is not a file")
+
+    filterpatterns = []
+
+    if args.filterpatterns is not None:
+        if not os.path.exists(args.filterpatterns):
+            parser.error("Filter patterns file does not exist")
+
+        if not os.path.isfile(args.filterpatterns):
+            parser.error("Filter patterns file is not a file")
+        try:
+            filterpatternsfile = open(args.filterpatterns, 'r')
+            for line in filterpatternsfile:
+                filterpattern = line.rstrip()
+
+                # skip empty lines
+                if filterpattern == '':
+                    continue
+
+                # skip comment lines with #
+                if filterpattern.startswith('#'):
+                    continue
+
+                filterpatterns.append(filterpattern)
+            filterpatternsfile.close()
+        except Exception:
+            parser.error("Could not open filter patterns file %s" % args.filterpatterns, e)
 
     if args.toplevel is None:
         parser.error("Top level directory not provided")
@@ -131,6 +159,13 @@ def main(argv):
         if f['type'] != 'file':
             continue
         if os.path.basename(f['path']) in ignore:
+            continue
+        skip = False
+        for filterpattern in filterpatterns:
+            if f['path'].endswith(filterpattern):
+                skip = True
+                break
+        if skip:
             continue
 
         # store results
