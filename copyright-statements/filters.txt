@@ -11,6 +11,8 @@ test-driver
 libtool.m4
 Makefile.in
 aclocal.m4
+shtool
+ylwrap
 .m4
 
 # generic make file stuff
@@ -19,6 +21,11 @@ Makefile
 # Linux kernel build system
 Kconfig
 Kbuild
+
+# Other Linux kernel files
+CREDITS
+Module.symvers
+.txt
 
 # RPM stuff
 .spec
@@ -44,18 +51,33 @@ LICENSE
 .info
 .tex
 .texi
+.texinfo
 
 # XML files
 .xml
 .sax
 .sax2
 
-# libxml2 specific
-#.rde
-#.rdr
-#.html
-#rdf1
-#rdf2
+# libxml2 and libxslt specific
+.rde
+.rdr
+.html
+rdf1
+rdf2
+.fo
+.xhtml
+.orig
+.out
+
+# man pages
+.1
+.2
+.3
+.4
+.5
+.6
+.7
+.8
 
 # random files
 RELEASE-NOTES
@@ -65,3 +87,11 @@ ChangeLog-2007
 ChangeLog-2009
 CONTRIBUTING
 README
+CommitLog
+CommitLog-4.1.0
+COPYRIGHT
+CHANGES
+COPYRIGHT.GPL
+INSTALL
+CONTRIBUTING.md
+README.sol2
