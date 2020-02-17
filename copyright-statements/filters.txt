@@ -36,4 +36,32 @@ Kbuild
 
 # license files
 COPYING
+COPYING3
+COPYING3.LIB
 LICENSE
+
+# LaTeX, info and texinfo
+.info
+.tex
+.texi
+
+# XML files
+.xml
+.sax
+.sax2
+
+# libxml2 specific
+#.rde
+#.rdr
+#.html
+#rdf1
+#rdf2
+
+# random files
+RELEASE-NOTES
+NEWS
+ChangeLog
+ChangeLog-2007
+ChangeLog-2009
+CONTRIBUTING
+README
