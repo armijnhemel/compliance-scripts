@@ -46,17 +46,20 @@ COPYING
 COPYING3
 COPYING3.LIB
 LICENSE
+AUTHORS
 
 # LaTeX, info and texinfo
 .info
 .tex
 .texi
 .texinfo
+.dvi
 
 # XML files
 .xml
 .sax
 .sax2
+.svg
 
 # libxml2 and libxslt specific
 .rde
@@ -95,3 +98,8 @@ COPYRIGHT.GPL
 INSTALL
 CONTRIBUTING.md
 README.sol2
+CHANGELOG
+README.LZO
+EXAMPLES
+CONTRIBUTIONS
+.md
