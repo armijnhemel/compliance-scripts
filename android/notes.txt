@@ -1,3 +1,14 @@
 Some notes for Android compliance:
 
 1. check whether or not all files for iptables and the netfilter part of the Linux kernel are present. The reason is that there are some files where the file name only differs in case, but where both files are needed for compilation, as they are different. Example: xt_mark.h and xt_MARK.h. On a file system that is case insensitive, or when using a compression program that ignores case, it might be that the files where the names only differ in case are considered to be equivalent and only one of the files is packed, instead of both. This will lead to build failures.
+2. in some Android versions the notices for iptables are not correctly recorded in the notices file. To fix this make changes described in the following commits:
+
+https://android.googlesource.com/platform/external/iptables/+/b6da12d1a9020e2819f3c449244801a285659f
+https://android.googlesource.com/platform/external/iptables/+/ce477f9fac60afeb6224a6c418a7e6032fefea85%5E%21/#F0
+https://android.googlesource.com/platform/build/+/76c7d68ed99f44354a8e6af1ec494ca14abb20a5
+
+This might require cherry picking the changes.
+
+3. in some Android versions the notices for iproute2 are not correctly recorded in the notices file. To fix this apply the changes in the following commit:
+
+https://android.googlesource.com/platform/external/iproute2/+/5aa4845c8ef3ea0371955a2ba5f7baf7ed4e2d
