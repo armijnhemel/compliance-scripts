@@ -12,3 +12,7 @@ This might require cherry picking the changes.
 3. in some Android versions the notices for iproute2 are not correctly recorded in the notices file. To fix this apply the changes in the following commit:
 
 https://android.googlesource.com/platform/external/iproute2/+/5aa4845c8ef3ea0371955a2ba5f7baf7ed4e2d
+
+4. make bash the default shell on Ubuntu (if using Ubuntu as host system):
+
+dpkg-reconfigure dash
