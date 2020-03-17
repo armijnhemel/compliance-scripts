@@ -1,0 +1,3 @@
+Some notes for Android compliance:
+
+1. check whether or not all files for iptables and the netfilter part of the Linux kernel are present. The reason is that there are some files where the file name only differs in case, but where both files are needed for compilation, as they are different. Example: xt_mark.h and xt_MARK.h. On a file system that is case insensitive, or when using a compression program that ignores case, it might be that the files where the names only differ in case are considered to be equivalent and only one of the files is packed, instead of both. This will lead to build failures.
