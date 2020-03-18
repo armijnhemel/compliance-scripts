@@ -7,7 +7,7 @@
 #
 # * Linux kernel images
 # * qemu
-# * all executables compiled for Darwin-x86, Darwin-x86-64, MIPS, MIPS64
+# * all executables compiled for Darwin-x86, Darwin-x86-64, MIPS, MIPS64, MingW
 
 
 # set this to your Android directory
@@ -54,13 +54,17 @@ rm -rf ${ANDROID_DIR}/prebuilts/misc/darwin-x86
 rm -rf ${ANDROID_DIR}/prebuilts/misc/darwin-x86_64
 rm -rf ${ANDROID_DIR}/prebuilts/misc/android-mips
 rm -rf ${ANDROID_DIR}/prebuilts/misc/android-mips64
+rm -rf ${ANDROID_DIR}/prebuilts/misc/windows
 
 # python
 rm -rf ${ANDROID_DIR}/prebuilts/python/darwin-x86
 
 # sdk
 rm -rf ${ANDROID_DIR}/prebuilts/sdk/tools/darwin
+rm -rf ${ANDROID_DIR}/prebuilts/sdk/tools/windows
 
 # tools
 rm -rf ${ANDROID_DIR}/prebuilts/tools/darwin-x86
 rm -rf ${ANDROID_DIR}/prebuilts/tools/darwin-x86_64
+rm -rf ${ANDROID_DIR}/prebuilts/tools/windows
+rm -rf ${ANDROID_DIR}/prebuilts/tools/windows-x86_64
