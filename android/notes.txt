@@ -1,6 +1,7 @@
 Some notes for Android compliance:
 
 1. check whether or not all files for iptables and the netfilter part of the Linux kernel are present. The reason is that there are some files where the file name only differs in case, but where both files are needed for compilation, as they are different. Example: xt_mark.h and xt_MARK.h. On a file system that is case insensitive, or when using a compression program that ignores case, it might be that the files where the names only differ in case are considered to be equivalent and only one of the files is packed, instead of both. This will lead to build failures.
+
 2. in some Android versions the notices for iptables are not correctly recorded in the notices file. To fix this make changes described in the following commits:
 
 https://android.googlesource.com/platform/external/iptables/+/b6da12d1a9020e2819f3c449244801a285659f
@@ -16,3 +17,5 @@ https://android.googlesource.com/platform/external/iproute2/+/5aa4845c8ef3ea0371
 4. make bash the default shell on Ubuntu (if using Ubuntu as host system):
 
 dpkg-reconfigure dash
+
+Also see: https://wiki.ubuntu.com/DashAsBinSh
