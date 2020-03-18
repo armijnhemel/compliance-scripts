@@ -2,12 +2,14 @@
 
 # script to clean up Linux kernel images and other prebuilts from the prebuilt
 # directory. This assumes that the host machine is a Linux machine (for
-# example: Ubuntu 14.04) on x86 or x86-64. The following components are
-# removed with this script:
+# example: Ubuntu 14.04) on x86 or x86-64 and code is generated for either
+# x86, x86-64, ARM or ARM64 devices. The following components are removed with
+# this script:
 #
 # * Linux kernel images
 # * qemu
 # * all executables compiled for Darwin-x86, Darwin-x86-64, MIPS, MIPS64, MingW
+# * cross compilers that can generate code for MIPS and MIPS64
 
 
 # set this to your Android directory
@@ -48,6 +50,7 @@ rm -rf ${ANDROID_DIR}/prebuilts/clang/darwin-x86
 
 # gcc
 rm -rf ${ANDROID_DIR}/prebuilts/gcc/darwin-x86
+rm -rf ${ANDROID_DIR}/prebuilts/gcc/linux-x86/mips/mips64el-linux-android-4.9
 
 # misc
 rm -rf ${ANDROID_DIR}/prebuilts/misc/darwin-x86
