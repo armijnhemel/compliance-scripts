@@ -239,7 +239,7 @@ def main(argv):
                                 spdxfile.close()
 
         if not report_license:
-            sclicense_statements = set()
+            continue
 
         if args.ignore_empty:
             if scstatements == set() and sclicense_statements == set() and scauthors == set():
