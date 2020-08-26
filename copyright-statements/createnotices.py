@@ -47,6 +47,8 @@ def main(argv):
                         help="Extended aggregated results")
     parser.add_argument("-i", "--filter-patterns", action="store", dest="filterpatterns",
                         help="file with filter patterns (extensions)", metavar="FILE")
+    parser.add_argument("-l", "--license-filter", action="store", dest="filterlicenses",
+                        help="file with licenses to report", metavar="FILE")
     args = parser.parse_args()
 
     # sanity checks for the various options
@@ -58,6 +60,32 @@ def main(argv):
 
     if not os.path.isfile(args.jsonfile):
         parser.error("ScanCode JSON file is not a file")
+
+    filterlicenses = set()
+
+    if args.filterlicenses is not None:
+        if not os.path.exists(args.filterlicenses):
+            parser.error("Filter patterns file does not exist")
+
+        if not os.path.isfile(args.filterlicenses):
+            parser.error("Filter patterns file is not a file")
+        try:
+            filterpatternsfile = open(args.filterlicenses, 'r')
+            for line in filterpatternsfile:
+                filterpattern = line.rstrip()
+
+                # skip empty lines
+                if filterpattern == '':
+                    continue
+
+                # skip comment lines with #
+                if filterpattern.startswith('#'):
+                    continue
+
+                filterlicenses.add(filterpattern)
+            filterpatternsfile.close()
+        except Exception:
+            parser.error("Could not open filter patterns file %s" % args.filterlicenses, e)
 
     filterpatterns = []
 
@@ -170,6 +198,11 @@ def main(argv):
         sclicense_texts = set()
         sclicense_spdx_texts = set()
 
+        if filterlicenses == set():
+            report_license = True
+        else:
+            report_license = False
+
         if f['scan_errors'] != []:
             continue
         if f['authors'] != []:
@@ -183,9 +216,13 @@ def main(argv):
                 if u['spdx_license_key'] is not None:
                     sclicense_statements.add(u['spdx_license_key'])
                     license_key = u['spdx_license_key']
+                    if license_key in filterlicenses:
+                        report_license = True
                 else:
                     sclicense_statements.add(u['short_name'])
                     license_key = u['short_name']
+                    if license_key in filterlicenses:
+                        report_license = True
                 if u['matched_rule'] is not None:
                     if u['matched_rule']['is_license_text']:
                         if 'matched_text' in u:
@@ -200,6 +237,9 @@ def main(argv):
                                 sclicense_spdx_texts.add(spdxdata)
                                 sclicense_texts.add(spdxdata)
                                 spdxfile.close()
+
+        if not report_license:
+            sclicense_statements = set()
 
         if args.ignore_empty:
             if scstatements == set() and sclicense_statements == set() and scauthors == set():
