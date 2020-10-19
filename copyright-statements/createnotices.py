@@ -49,6 +49,8 @@ def main(argv):
                         help="file with filter patterns (extensions)", metavar="FILE")
     parser.add_argument("-l", "--license-filter", action="store", dest="filterlicenses",
                         help="file with licenses to report", metavar="FILE")
+    parser.add_argument("-p", "--path-filter", action="store", dest="pathfilter",
+                        help="only process paths under this parameter", metavar="FILE")
     args = parser.parse_args()
 
     # sanity checks for the various options
@@ -190,6 +192,9 @@ def main(argv):
                 break
         if skip:
             continue
+        if args.pathfilter is not None:
+            if not f['path'].startswith(args.pathfilter):
+                continue
 
         # store results
         scauthors = set()
