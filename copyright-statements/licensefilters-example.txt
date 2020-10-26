@@ -1,0 +1,20 @@
+Artistic-1.0
+Artistic-1.0-Perl
+Boost Original
+CC-BY-SA-4.0
+EPL-1.0
+Facebook Patent Rights 2
+Free unknown
+GFDL-1.1-only
+GPL-2.0-only
+Generic Bare Warranty Disclaimer
+LGPL-2.1-only
+MPL-2.0
+OpenSSL exception to LGPL 3.0 or later
+Other Permissive Licenses
+Python-2.0
+Public Domain
+Public Domain Disclaimer
+Unknown License reference
+ZPL-2.1
+unknown
