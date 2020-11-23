@@ -41,8 +41,7 @@ You can find the help for the program by running the following command:
 
 which will print:
 
-usage: createnotices.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT] [-o FILE]
-                        [-z] [-a] [-e]
+usage: createnotices.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT] [-o FILE] [-z] [-a] [-e] [-i FILE] [-l FILE] [-p FILE]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -50,13 +49,18 @@ usage: createnotices.py [-h] [-j FILE] [-d DIR] [-f OUTPUT_FORMAT] [-o FILE]
       -d DIR, --directory DIR
                             top level directory
       -f OUTPUT_FORMAT, --output-format OUTPUT_FORMAT
-                            output format, supported values: 'csv', 'text'
-                            (default)
+                            output format, supported values: 'csv', 'text' (default)
       -o FILE, --output-file FILE
                             output file (mandatory for 'csv', otherwise stdout)
       -z, --ignore-empty    Ignore empty results
       -a, --aggregate       Aggregate results
       -e, --extended        Extended aggregated results
+      -i FILE, --filter-patterns FILE
+                            file with filter patterns (extensions)
+      -l FILE, --license-filter FILE
+                            file with licenses to report
+      -p FILE, --path-filter FILE
+                            only process paths under this parameter
 
 To analyze results:
 
