@@ -1,3 +1,5 @@
+SPDX-Identifier: CC0-1.0
+
 This file documents the steps typically needed to find common issues in source code releases.
 
 1. unpack all of the source code: source code in archives typically comes in archives, like ZIP files, or tar balls. To do a full analysis these should first be unpacked, otherwise it might be easy to miss things. This can be done manually, or with a few simple scripts that recursively unpack these archives.

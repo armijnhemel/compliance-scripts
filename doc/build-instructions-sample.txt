@@ -1,3 +1,5 @@
+SPDX-Identifier: CC0-1.0
+
 These are the build instructions to rebuild the open source components for XXX Frobinator.
 
 Please note: rebuilding the source code and reinstalling the resulting programs onto the device are not supported by our technical support department! Installing modified software will void warranty!
