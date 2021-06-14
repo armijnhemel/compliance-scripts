@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Copyright Armijn Hemel for Tjaldur Software Governance Solutions
-# SPDX-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # This scripts processes a list of strings from the Linux kernel and
 # compares it to the output of a Git diffstat to see if there are matches.

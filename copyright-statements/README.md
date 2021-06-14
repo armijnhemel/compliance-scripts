@@ -17,7 +17,7 @@ The 'develop' branch is the most up to date and is the branch that should be use
 
 This script is licensed under the GNU GPL 3 license.
 
-SPDX-Identifier: GPL-3.0-only.
+SPDX-License-Identifier: GPL-3.0-only
 
 # Adding the SPDX license list data
 

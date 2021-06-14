@@ -1,4 +1,4 @@
-SPDX-Identifier: CC0-1.0
+SPDX-License-Identifier: CC0-1.0
 
 These are the build instructions to rebuild the open source components for XXX Frobinator.
 

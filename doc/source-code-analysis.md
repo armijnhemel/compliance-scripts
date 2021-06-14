@@ -1,4 +1,4 @@
-SPDX-Identifier: CC0-1.0
+SPDX-License-Identifier: CC0-1.0
 
 This file documents the steps typically needed to find common issues in source code releases.
 
