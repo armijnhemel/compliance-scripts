@@ -2,6 +2,7 @@
 configure.ac
 config.guess
 config.sub
+config.log
 compile
 configure
 depcomp
