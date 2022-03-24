@@ -36,7 +36,7 @@ CVE_REFERENCE = re.compile(r'(CVE-[0-9]{4}-[0-9]+)')
 VALID_EXTENSIONS = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh', '.hpp',
                     '.hxx', '.h++', '.l', '.y', '.qml', '.s', '.txx', '.dts',
                     '.dtsi', '.java', '.jsp', '.groovy', '.scala', '.kt',
-                    '.js', '.dart', '.py', '.pl', '.pm']
+                    '.js', '.dart', '.py', '.pl', '.pm', '.php', '.php3']
 
 @click.command(short_help='process CVE data and extract useful data')
 #@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
@@ -86,7 +86,7 @@ def main(cve):
         if match_results != []:
             for match in match_results:
                 match_path = pathlib.Path(match)
-                if match_path.suffix in VALID_EXTENSIONS:
+                if match_path.suffix.lower() in VALID_EXTENSIONS:
                     verified_paths.add(match)
 
         cve_result['paths'] = verified_paths
