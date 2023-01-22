@@ -56,7 +56,7 @@ def main(cve):
                     cve_to_cve[cve].add(c)
 
     for cve in cve_to_cve:
-        print(cve, sorted(cve_to_cve[cve]))
+        print(cve, len(sorted(cve_to_cve[cve])))
 
 
 if __name__ == "__main__":
