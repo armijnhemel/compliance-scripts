@@ -173,12 +173,12 @@ def main(cve_directory):
                 cve_result['vendor_references'] = references
 
                 # other CVEs
-                cve_references = []
+                cve_references = set()
                 match_results = CVE_REFERENCE.findall(description['value'])
                 if match_results != []:
                     for match in match_results:
                         if match != cve_number:
-                            cve_references.append(match)
+                            cve_references.add(match)
 
                 cve_result['cve_references'] = cve_references
                 print(cve_result)
