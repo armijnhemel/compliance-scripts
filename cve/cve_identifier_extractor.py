@@ -32,10 +32,13 @@ MEDIATEK_PATCH_ID2 = re.compile(r'Patch ID: (MOLY[0-9]{8})')
 NVIDIA_REFERENCE = re.compile(r'(N-CVE-[0-9]{4}-[0-9]+)')
 CVE_REFERENCE = re.compile(r'(CVE-[0-9]{4}-[0-9]+)')
 
-VALID_EXTENSIONS = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh', '.hpp',
-                    '.hxx', '.h++', '.l', '.y', '.qml', '.s', '.txx', '.dts',
-                    '.dtsi', '.java', '.jsp', '.groovy', '.scala', '.kt',
-                    '.js', '.dart', '.py', '.pl', '.pm', '.php', '.php3']
+VALID_EXTENSIONS_SRC = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh',
+                    '.hpp', '.hxx', '.h++', '.l', '.y', '.qml', '.s', '.txx',
+                    '.dts', '.dtsi', '.java', '.jsp', '.groovy', '.scala',
+                    '.kt', '.js', '.dart', '.py', '.pl', '.pm', '.php',
+                    '.php3']
+
+VALID_EXTENSIONS_BINARIES = ['.a', '.dll', '.exe']
 
 @click.command(short_help='process CVE data and extract useful data')
 #@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
@@ -86,16 +89,20 @@ def main(cve_directory):
                     pass
 
                 # search for file paths
-                verified_paths = set()
+                verified_source_paths = set()
+                verified_binary_paths = set()
 
                 match_results = RE_PATH.findall(description['value'])
 
                 if match_results != []:
                     for match in match_results:
                         match_path = pathlib.Path(match)
-                        if match_path.suffix.lower() in VALID_EXTENSIONS:
-                            verified_paths.add(match)
-                cve_result['paths'] = verified_paths
+                        if match_path.suffix.lower() in VALID_EXTENSIONS_SRC:
+                            verified_source_paths.add(match)
+                        if match_path.suffix.lower() in VALID_EXTENSIONS_BINARIES:
+                            verified_binary_paths.add(match)
+                cve_result['source_paths'] = verified_source_paths
+                cve_result['binary_paths'] = verified_binary_paths
 
                 # search for function calls
                 functions = set()
