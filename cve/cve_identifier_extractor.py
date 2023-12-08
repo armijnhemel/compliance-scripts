@@ -32,6 +32,11 @@ MEDIATEK_PATCH_ID2 = re.compile(r'Patch ID: (MOLY[0-9]{8})')
 NVIDIA_REFERENCE = re.compile(r'(N-CVE-[0-9]{4}-[0-9]+)')
 CVE_REFERENCE = re.compile(r'(CVE-[0-9]{4}-[0-9]+)')
 
+# upnp references, lower cased
+UPNP_REFERENCES = ['libupnp', 'miniigd', 'miniupnp', 'mini_upnpd', 'minissdpd',
+                   'm-search', 'addportmapping', 'newinternalclient',
+                   'upnp:rootdevice', 'internet gateway device']
+
 VALID_EXTENSIONS_SRC = ['.c', '.cc', '.cpp', '.cxx', '.c++', '.h', '.hh',
                     '.hpp', '.hxx', '.h++', '.l', '.y', '.qml', '.s', '.txx',
                     '.dts', '.dtsi', '.java', '.jsp', '.groovy', '.scala',
@@ -188,6 +193,14 @@ def main(cve_directory):
                             cve_references.add(match)
 
                 cve_result['cve_references'] = cve_references
+
+                cve_result['scope'] = []
+
+                # search for UPnP references
+                for upnp_reference in UPNP_REFERENCES:
+                    if upnp_reference in description['value'].lower():
+                        cve_result['scope'].append('UPnP')
+                        break
                 print(cve_result)
                 print()
 
