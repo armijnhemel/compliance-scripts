@@ -40,6 +40,8 @@ import sys
 
 import click
 
+IGNORE_DIRECTORIES = ['/dev/', '/proc/', '/sys']
+
 # there are only a few syscalls that are interesting
 INTERESTING_SYSCALLS = ['open', 'openat', 'chdir', 'fchdir',
                         'rename', 'clone', 'symlink', 'symlinkat']
@@ -279,11 +281,13 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     # the -y option. Make sure this is properly handled.
 
     default_cwd = ''
-    firstgetcwd = False
+    first_getcwd = False
 
     pid_to_cwd = {}
     pid_to_cmd = {}
 
+    # lookup table for current PIDs to a unique PID.
+    # This is because PIDs can be reused for processes.
     pid_to_pid_label = {}
 
     directories = set()
@@ -301,7 +305,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     # It is easy to find out what the top level PID is by keeping track of
     # which PIDs are known. When a system call is resumed for an unknown PID
     # that will be the top level PID.
-    knownpids = set()
+    known_pids = set()
 
     # set a dummy value for the first PID
     default_pid = None
@@ -314,14 +318,25 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     backlog = []
     backlogged = False
 
+    # walk through the lines of the strace log. There are a few caveats:
+    # * not every line has the full contents of a single systam call. Calls
+    #   can be interrupted ('unfinished') and then resume, so a record has
+    #   to be kept which line belongs to which PID
+    # * PIDs can wrap around and be reused by different processes. There is
+    #   only a limited amount of process IDs so for very large builds (like
+    #   the Linux kernel these are reused for unrelated processes. This is why
+    #   PIDs are stored with a unique identifier so there are no clashes. The
+    #   only exception is the top level PID, which will not be reused.
     for line in tracefile:
         # either there is an exit code, or the system call is unfinished. The rest
         # is irrelevant garbage.
-        # Assume that strace is running in English. Right now (March 8, 2018) strace
+        # Assume that strace is running in English. Right now (December 20, 2023) strace
         # has not been translated, so this is a safe assumption.
         if not ('=' in line or 'unfinished' in line):
             continue
 
+        # grab the PID and syscall, or just the syscall
+        # if the line is for the top level PID.
         pid_syscall = pid_with_syscall_re.match(line)
         if pid_syscall is not None:
             pid, syscall = pid_syscall.groups()
@@ -332,10 +347,9 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 continue
 
             syscall = syscall_res.groups()[0]
-            # This is the top level pid. It actually is possible to
-            # later reconstruct the pid if the top level process
-            # forks a process and the process returns, or if a vfork
-            # call is resumed.
+            # This is a line for the top level pid. It actually is possible
+            # to later find the actual pid if the top level process forks
+            # a process and the process returns, or if a vfork call is resumed.
             if default_pid is not None:
                 pid = default_pid
             else:
@@ -347,15 +361,14 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         #    if execveres is not None:
         #        pid_to_cmd[pid] = execveres.group('command')
 
-        if syscall == 'getcwd':
-            if not firstgetcwd:
-                cwd = getcwdre.match(line).groups()[0]
-                default_cwd = cwd
-                firstgetcwd = True
-                if 'default' not in pid_to_cwd:
-                    pid_to_cwd['default'] = cwd
-                    directories.add(cwd)
-                continue
+        if syscall == 'getcwd' and not first_getcwd:
+            # record the first instance of getcwd()
+            cwd = getcwdre.match(line).groups()[0]
+            default_cwd = cwd
+            first_getcwd = True
+            if 'default' not in pid_to_cwd:
+                pid_to_cwd['default'] = cwd
+                directories.add(cwd)
 
         # cloned processes inherit the cwd of the parent process
         elif syscall == 'clone':
@@ -373,8 +386,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     # of ascii letters the PIDs themselves are not really
                     # interesting anyway, so can be rewritten.
                     new_pid_label = clonepid + "".join(random.sample(string.ascii_letters, 4))
-                    if new_pid_label not in knownpids:
-                        knownpids.add(new_pid_label)
+                    if new_pid_label not in known_pids:
+                        known_pids.add(new_pid_label)
                         pid_to_pid_label[clonepid] = new_pid_label
                         break
                 if clonepid in known_child_pids:
@@ -430,7 +443,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         # and store them.
         if " resumed>" in line:
             # This is an alternative way to get to the first PID in some circumstances
-            if pid not in knownpids:
+            if pid not in known_pids:
                 default_pid = pid
                 pid_to_cwd[pid] = copy.deepcopy(pid_to_cwd['default'])
                 if 'default' in pid_to_cmd:
@@ -446,8 +459,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                         # of ascii letters # the PIDs themselves are not really
                         # interesting anyway, so can be rewritten.
                         new_pid_label = vforkpid + "".join(random.sample(string.ascii_letters, 4))
-                        if new_pid_label not in knownpids:
-                            knownpids.add(new_pid_label)
+                        if new_pid_label not in known_pids:
+                            known_pids.add(new_pid_label)
                             pid_to_pid_label[vforkpid] = new_pid_label
                             break
                     if vforkpid in known_child_pids:
@@ -509,8 +522,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                         # of ascii letters the PIDs themselves are not really
                         # interesting anyway, so can be rewritten.
                         new_pid_label = clonepid + "".join(random.sample(string.ascii_letters, 4))
-                        if new_pid_label not in knownpids:
-                            knownpids.add(new_pid_label)
+                        if new_pid_label not in known_pids:
+                            known_pids.add(new_pid_label)
                             pid_to_pid_label[clonepid] = new_pid_label
                             break
 
@@ -531,7 +544,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
             continue
 
         # add the pid to the list of known PIDs
-        knownpids.add(pid_to_pid_label[pid])
+        known_pids.add(pid_to_pid_label[pid])
 
         # then look at the lines that have either 'unfinished' or 'resumed'
         # Because the -y flag to strace is doing the heavy lifting just a bit of
