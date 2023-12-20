@@ -28,18 +28,14 @@
 # Make sure there is enough disk space available, as trace files for the
 # Linux kernel tend to be quite big.
 
-import argparse
 import copy
 import datetime
-import hashlib
-import multiprocessing
 import os
-import queue
+import pathlib
 import random
 import re
 import shutil
 import string
-import subprocess
 import sys
 
 import click
@@ -73,7 +69,7 @@ execvere = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+
 def rewritepid(pid):
     pass
 
-def process_trace_line(traceline, defaultpid, pidtocwd, pidtocmd, directories, ignore_files, openfiles, basepath, defaultcwd, pidtopidlabel):
+def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directories, ignore_files, openfiles, basepath, default_cwd, pidtopidlabel):
     # then look at the 'regular' lines
     if '+++ exited with' in traceline:
         # this message can be in the trace file unless -qq is passed
@@ -106,22 +102,22 @@ def process_trace_line(traceline, defaultpid, pidtocwd, pidtocmd, directories, i
         # later reconstruct the pid if the top level process
         # forks a process and the process returns, or if a vfork
         # call is resumed.
-        if defaultpid is not None:
-            pid = defaultpid
+        if default_pid is not None:
+            pid = default_pid
         else:
             pid = 'default'
 
-    if not pid in pidtocwd and pid != 'default':
-        pidtocwd[pid] = defaultcwd
+    if not pid in pid_to_cwd and pid != 'default':
+        pid_to_cwd[pid] = default_cwd
 
-    if syscall == 'chdir' or syscall == 'fchdir':
+    if syscall in ['chdir', 'fchdir']:
         if syscall == 'fchdir':
             fchdirres = fchdirre.search(traceline)
             if fchdirres is not None:
                 fchdirfd = int(fchdirres.groups()[0])
                 fullchdirpath = fchdirres.groups()[1]
                 fchdirresult = fchdirres.groups()[2]
-                pidtocwd[pid] = fullchdirpath
+                pid_to_cwd[pid] = fullchdirpath
                 directories.add(fullchdirpath)
         else:
             chdirres = chdirre.search(traceline)
@@ -133,11 +129,11 @@ def process_trace_line(traceline, defaultpid, pidtocwd, pidtocmd, directories, i
                 if chdirpath == '.':
                     return
                 if chdirpath.startswith('/'):
-                    pidtocwd[pid] = chdirpath
+                    pid_to_cwd[pid] = chdirpath
                     directories.add(chdirpath)
                 else:
-                    if pid in pidtocwd:
-                        pidtocwd[pid] = os.path.normpath(os.path.join(basepath, pidtocwd[pid], chdirpath))
+                    if pid in pid_to_cwd:
+                        pid_to_cwd[pid] = os.path.normpath(os.path.join(basepath, pid_to_cwd[pid], chdirpath))
     if syscall == 'open':
         openres = openre.search(traceline)
         if openres is not None:
@@ -229,97 +225,78 @@ def process_trace_line(traceline, defaultpid, pidtocwd, pidtocmd, directories, i
     if syscall == 'rename':
         renameres = renamere.search(traceline)
         if renameres is not None:
-            sourcefile = os.path.normpath(os.path.join(pidtocwd[pid], renameres.groups()[0]))
-            targetfile = os.path.normpath(os.path.join(pidtocwd[pid],renameres.groups()[1]))
+            sourcefile = os.path.normpath(os.path.join(pid_to_cwd[pid], renameres.groups()[0]))
+            targetfile = os.path.normpath(os.path.join(pid_to_cwd[pid],renameres.groups()[1]))
             # check if sourcefile is in ignore_files. If so,
             # then targetfile should be as well.
             if sourcefile in ignore_files:
                 ignore_files.add(targetfile)
 
-def main(argv):
-    parser = argparse.ArgumentParser()
 
-    # the following options are provided on the commandline
-    # the configuration file
-    parser.add_argument("-c", "--config", action="store", dest="cfg", help="path to configuration file", metavar="FILE")
-
-    # the path to the trace file
-    parser.add_argument("-f", "--tracefile", action="store", dest="tracefile", help="path to trace file", metavar="FILE")
-
+@click.command(short_help='Process TechInfoDepot XML dump')
+@click.option('--basepath', '-b', 'basepath', required=True,
+              help='base path of source director during build', type=str)
+@click.option('--buildid', '-u', 'buildid', required=True,
+              help='string to identify the build with', type=str)
+@click.option('--sourcedir', '-s', 'sourcedir',
+              help='path of source directory', type=click.Path(path_type=pathlib.Path))
+@click.option('--targetdir', '-t', 'targetdir',
+              help='directory to copy/write files that were opened during the build',
+              type=click.Path(path_type=pathlib.Path))
+@click.option('--tracefile', '-f', 'tracefile', required=True, help='path to trace file',
+               type=click.Path('r', path_type=pathlib.Path))
+def main(basepath, buildid, sourcedir, targetdir, tracefile):
     # the base path of the source code directory used during the build.
     # This might actually be different than --sourcedir
     # in case the trace file is processed on a different machine
-    parser.add_argument("-b", "--basepath", action="store", dest="basepath", help="base path of source directory during build", metavar="BASEPATH")
+    if not os.path.isabs(basepath):
+        raise click.ClickException("--basepath should point to an absolute path")
 
-    # a directory where the source code files can be found. These might
-    # be the same as base path, but doesn't have to be.
-    parser.add_argument("-s", "--sourcedir", action="store", dest="sourcedir", help="path of source directory", metavar="SOURCEDIR")
+    copy_files = False
 
-    # a directory to copy the opened files to
-    parser.add_argument("-t", "--targetdir", action="store", dest="targetdir", help="directory to copy/write files that were opened during the build", metavar="DIR")
+    # a directory where the source code files can be found for copying.
+    # These might be the same as base path, but doesn't have to be.
+    if sourcedir is not None:
+        if not os.path.exists(sourcedir):
+            raise click.ClickException("directory with source code files does not exist")
+        copy_files = True
 
-    # an identifier with which the build can be identified
-    parser.add_argument("-u", "--buildid", action="store", dest="buildid", help="string to identify the build with", metavar="BUILD ID")
+    # directory to copy the used files to from sourcedir
+    if targetdir is not None:
+        if not os.path.exists(targetdir):
+            raise click.ClickException("target directory does not exist")
+        if not copy_files:
+            raise click.ClickException("target directory defined but '--sourcedir' is not set")
+    else:
+        copy_files = False
 
-    args = parser.parse_args()
-
-    if args.tracefile == None:
-        parser.error("Trace file missing")
-
-    if not os.path.exists(args.tracefile):
-        parser.error("Trace file does not exist")
-
-    if not os.path.isfile(args.tracefile):
-        parser.error("Trace file is not a file")
-
-    if args.basepath == None:
-        parser.error("basepath for source directory missing")
-
-    if not os.path.isabs(args.basepath):
-        parser.error("basepath not an absolute path")
-
-    if args.buildid == None:
-        parser.error("build identifier missing")
-
-    if args.buildid.strip() == "":
-        parser.error("build identifier empty")
+    if buildid.strip() == "":
+        raise click.ClickException("build identifier empty")
 
     # TODO: symbolic links are actually resolved by strace when using
     # the -y option, so make sure that the basepath is first resolved as
     # well.
-    basepath = os.path.normpath(args.basepath)
+    basepath = os.path.normpath(basepath)
 
-    targetdir = None
-    if args.targetdir is not None:
-        if not os.path.exists(args.targetdir):
-            parser.error("directory to write temporary files does not exist")
-        targetdir = args.targetdir
+    tracefile = open(tracefile, 'r')
 
-    sourcedir = None
-    if args.sourcedir is not None:
-        if not os.path.exists(args.sourcedir):
-            parser.error("directory with source code files does not exist")
-        sourcedir = args.sourcedir
-
-    tracefile = open(args.tracefile, 'r')
-
-    defaultcwd = ''
+    default_cwd = ''
     firstgetcwd = False
 
-    pidtocwd = {}
-    pidtocmd = {}
+    pid_to_cwd = {}
+    pid_to_cmd = {}
 
     pidtopidlabel = {}
 
     directories = set()
 
     # store which processes create other processes and vice versa
-    parenttopid = {}
-    knownchildpids = set()
+    parent_to_pid = {}
+    known_child_pids = set()
 
     # store the inputs and outputs per file
-    inputsperpid = {}
-    outputsperpid= {}
+    inputs_per_pid = {}
+    outputs_per_pid= {}
 
     # the pid of the first process is not shown in the trace file until after
     # returning from the first clone/execve/etc.
@@ -329,7 +306,7 @@ def main(argv):
     knownpids = set()
 
     # set a dummy value for the first PID
-    defaultpid = None
+    default_pid = None
 
     openfiles = set()
 
@@ -355,23 +332,23 @@ def main(argv):
             # later reconstruct the pid if the top level process
             # forks a process and the process returns, or if a vfork
             # call is resumed.
-            if defaultpid is not None:
-                pid = defaultpid
+            if default_pid is not None:
+                pid = default_pid
             else:
                 pid = 'default'
 
         #if 'execve(' in i:
         #    execveres = execvere.search(i)
         #    if execveres is not None:
-        #        pidtocmd[pid] = execveres.group('command')
+        #        pid_to_cmd[pid] = execveres.group('command')
 
         if 'getcwd(' in i:
             if not firstgetcwd:
                 cwd = getcwdre.match(i).groups()[0]
-                defaultcwd = cwd
+                default_cwd = cwd
                 firstgetcwd = True
-                if not 'default' in pidtocwd:
-                    pidtocwd['default'] = cwd
+                if 'default' not in pid_to_cwd:
+                    pid_to_cwd['default'] = cwd
                     directories.add(cwd)
                 continue
 
@@ -383,30 +360,28 @@ def main(argv):
                 continue
             cloneres = clonere.search(i)
             if cloneres is not None:
-                if not pid in parenttopid:
-                    parenttopid[pid] = []
+                if pid not in parent_to_pid:
+                    parent_to_pid[pid] = []
                 clonepid = cloneres.groups()[0]
                 while True:
-                    newpidlabel = clonepid
-                    for n in range(4):
-                        # add a random string at the end of the pid, just consisting of ascii letters
-                        # the PIDs themselves are not really interesting anyway, so can be rewritten.
-                        newpidlabel = newpidlabel + random.choice(string.ascii_letters)
-                    if not newpidlabel in knownpids:
-                        knownpids.add(newpidlabel)
-                        pidtopidlabel[clonepid] = newpidlabel
+                    # add a random string at the end of the pid, just consisting
+                    # of ascii letters the PIDs themselves are not really
+                    # interesting anyway, so can be rewritten.
+                    new_pid_label = clonepid + "".join(random.sample(string.ascii_letters, 4))
+                    if not new_pid_label in knownpids:
+                        knownpids.add(new_pid_label)
+                        pidtopidlabel[clonepid] = new_pid_label
                         break
-                if clonepid in knownchildpids:
+                if clonepid in known_child_pids:
                     # now rewrite the ID to something sensible first
                     translatepids = {}
                     while True:
-                        newclonepid = clonepid
-                        for n in range(4):
-                            # add a random string at the end of the pid, just consisting of ascii letters
-                            # the PIDs themselves are not really interesting anyway, so can be rewritten.
-                            newclonepid = newclonepid + random.choice(string.ascii_letters)
-                        if not newclonepid in knownchildpids:
-                            knownchildpids.add(newclonepid)
+                        # add a random string at the end of the pid, just consisting
+                        # of ascii letters the PIDs themselves are not really
+                        # interesting anyway, so can be rewritten.
+                        newclonepid = clonepid + "".join(random.sample(string.ascii_letters, 4))
+                        if not newclonepid in known_child_pids:
+                            known_child_pids.add(newclonepid)
                             translatepids[clonepid] = newclonepid
                             break
 
@@ -414,74 +389,72 @@ def main(argv):
                         pidstoremove = set()
                         for t in translatepids:
                             # first check if the translated value
-                            # is in parenttopid to prevent that values
+                            # is in parent_to_pid to prevent that values
                             # are overwritten
-                            if translatepids[t] in parenttopid:
+                            if translatepids[t] in parent_to_pid:
                                 continue
-                            if translatepids[t] in pidtocmd:
+                            if translatepids[t] in pid_to_cmd:
                                 continue
                             # now translate everything
                             # first the parent
-                            if t in parenttopid:
+                            if t in parent_to_pid:
                                 # first rewrite all the children
-                                for pp in parenttopid[t]:
-                                    pidtoparent[pp] = translatepids[t]
-                                parenttopid[translatepids[t]] = copy.deepcopy(parenttopid[t])
-                                del parenttopid[t]
-                            if t in pidtocmd:
-                                print("translating", t, translatepids[t], pidtocmd[t])
-                                pidtocmd[translatepids[t]] = copy.deepcopy(pidtocmd[t])
-                                del pidtocmd[t]
-                            if t in pidtoparent:
-                                parenttopid[pidtoparent[t]].remove(t)
-                                parenttopid[pidtoparent[t]].append(translatepids[t])
-                                pidtoparent[translatepids[t]] = copy.deepcopy(pidtoparent[t])
-                                del pidtoparent[t]
+                                for pp in parent_to_pid[t]:
+                                    pid_to_parent[pp] = translatepids[t]
+                                parent_to_pid[translatepids[t]] = copy.deepcopy(parent_to_pid[t])
+                                del parent_to_pid[t]
+                            if t in pid_to_cmd:
+                                print("translating", t, translatepids[t], pid_to_cmd[t])
+                                pid_to_cmd[translatepids[t]] = copy.deepcopy(pid_to_cmd[t])
+                                del pid_to_cmd[t]
+                            if t in pid_to_parent:
+                                parent_to_pid[pid_to_parent[t]].remove(t)
+                                parent_to_pid[pid_to_parent[t]].append(translatepids[t])
+                                pid_to_parent[translatepids[t]] = copy.deepcopy(pid_to_parent[t])
+                                del pid_to_parent[t]
                             pidstoremove.add(t)
-                        for to in pidstoremove:
+                        for t in pidstoremove:
                             del translatepids[t]
 
-                parenttopid[pid].append(clonepid)
-                pidtoparent[clonepid] = pid
-                pidtocwd[clonepid] = copy.deepcopy(pidtocwd[pid])
-                knownchildpids.add(clonepid)
+                parent_to_pid[pid].append(clonepid)
+                pid_to_parent[clonepid] = pid
+                pid_to_cwd[clonepid] = copy.deepcopy(pid_to_cwd[pid])
+                known_child_pids.add(clonepid)
 
         # look through the lines with 'resumed' to find the PIDs of child processes
         # and store them.
         if " resumed>" in i:
             # This is an alternative way to get to the first PID in some circumstances
             if pid not in knownpids:
-                defaultpid = pid
-                pidtocwd[pid] = copy.deepcopy(pidtocwd['default'])
-                if 'default' in pidtocmd:
-                    pidtocmd[pid] = copy.deepcopy(pidtocmd['default'])
+                default_pid = pid
+                pid_to_cwd[pid] = copy.deepcopy(pid_to_cwd['default'])
+                if 'default' in pid_to_cmd:
+                    pid_to_cmd[pid] = copy.deepcopy(pid_to_cmd['default'])
             if 'vfork' in i:
                 vforkres = vforkresumedre.search(i)
                 if vforkres is not None:
-                    if not pid in parenttopid:
-                        parenttopid[pid] = []
+                    if pid not in parent_to_pid:
+                        parent_to_pid[pid] = []
                     vforkpid = vforkres.groups()[0]
                     while True:
-                        newpidlabel = vforkpid
-                        for n in range(4):
-                            # add a random string at the end of the pid, just consisting of ascii letters
-                            # the PIDs themselves are not really interesting anyway, so can be rewritten.
-                            newpidlabel = newpidlabel + random.choice(string.ascii_letters)
-                        if not newpidlabel in knownpids:
-                            knownpids.add(newpidlabel)
-                            pidtopidlabel[vforkpid] = newpidlabel
+                        # add a random string at the end of the pid, just consisting
+                        # of ascii letters # the PIDs themselves are not really
+                        # interesting anyway, so can be rewritten.
+                        new_pid_label = vforkpid + "".join(random.sample(string.ascii_letters, 4))
+                        if not new_pid_label in knownpids:
+                            knownpids.add(new_pid_label)
+                            pidtopidlabel[vforkpid] = new_pid_label
                             break
-                    if vforkpid in knownchildpids:
+                    if vforkpid in known_child_pids:
                         # now rewrite the ID to something sensible first
                         translatepids = {}
                         while True:
-                            newclonepid = vforkpid
-                            for n in range(4):
-                                # add a random string at the end of the pid, just consisting of ascii letters
-                                # the PIDs themselves are not really interesting anyway, so can be rewritten.
-                                newclonepid = newclonepid + random.choice(string.ascii_letters)
-                            if not newclonepid in knownchildpids:
-                                knownchildpids.add(newclonepid)
+                            # add a random string at the end of the pid, just consisting
+                            # of ascii letters the PIDs themselves are not really
+                            # interesting anyway, so can be rewritten.
+                            newclonepid = vforkpid + "".join(random.sample(string.ascii_letters, 4))
+                            if not newclonepid in known_child_pids:
+                                known_child_pids.add(newclonepid)
                                 translatepids[vforkpid] = newclonepid
                                 break
 
@@ -489,63 +462,64 @@ def main(argv):
                             pidstoremove = set()
                             for t in translatepids:
                                 # first check if the translated value
-                                # is in parenttopid to prevent that values
+                                # is in parent_to_pid to prevent that values
                                 # are overwritten
-                                if translatepids[t] in parenttopid:
+                                if translatepids[t] in parent_to_pid:
                                     continue
-                                if translatepids[t] in pidtocmd:
+                                if translatepids[t] in pid_to_cmd:
                                     continue
                                 # now translate everything
                                 # first the parent
-                                if t in parenttopid:
+                                if t in parent_to_pid:
                                     # first rewrite all the children
-                                    for pp in parenttopid[t]:
-                                        pidtoparent[pp] = translatepids[t]
-                                    parenttopid[translatepids[t]] = copy.deepcopy(parenttopid[t])
-                                    del parenttopid[t]
-                                if t in pidtocmd:
-                                    print("translating", t, translatepids[t], pidtocmd[t])
-                                    pidtocmd[translatepids[t]] = copy.deepcopy(pidtocmd[t])
-                                    del pidtocmd[t]
-                                if t in pidtoparent:
-                                    parenttopid[pidtoparent[t]].remove(t)
-                                    parenttopid[pidtoparent[t]].append(translatepids[t])
-                                    pidtoparent[translatepids[t]] = copy.deepcopy(pidtoparent[t])
-                                    del pidtoparent[t]
+                                    for pp in parent_to_pid[t]:
+                                        pid_to_parent[pp] = translatepids[t]
+                                    parent_to_pid[translatepids[t]] = copy.deepcopy(parent_to_pid[t])
+                                    del parent_to_pid[t]
+                                if t in pid_to_cmd:
+                                    print("translating", t, translatepids[t], pid_to_cmd[t])
+                                    pid_to_cmd[translatepids[t]] = copy.deepcopy(pid_to_cmd[t])
+                                    del pid_to_cmd[t]
+                                if t in pid_to_parent:
+                                    parent_to_pid[pid_to_parent[t]].remove(t)
+                                    parent_to_pid[pid_to_parent[t]].append(translatepids[t])
+                                    pid_to_parent[translatepids[t]] = copy.deepcopy(pid_to_parent[t])
+                                    del pid_to_parent[t]
                                 pidstoremove.add(t)
                             for to in pidstoremove:
                                 del translatepids[t]
 
-                    parenttopid[pid].append(vforkpid)
-                    pidtoparent[vforkpid] = pid
-                    pidtocwd[vforkpid] = copy.deepcopy(pidtocwd[pid])
-                    knownchildpids.add(vforkpid)
+                    parent_to_pid[pid].append(vforkpid)
+                    pid_to_parent[vforkpid] = pid
+                    pid_to_cwd[vforkpid] = copy.deepcopy(pid_to_cwd[pid])
+                    known_child_pids.add(vforkpid)
             elif 'clone' in i:
                 cloneres = cloneresumedre.search(i.strip())
                 if cloneres is not None:
-                    if not pidtopidlabel[pid] in parenttopid:
-                        parenttopid[pidtopidlabel[pid]] = []
+                    if not pidtopidlabel[pid] in parent_to_pid:
+                        parent_to_pid[pidtopidlabel[pid]] = []
                     clonepid = cloneres.groups()[0]
                     while True:
-                        newpidlabel = clonepid
-                        for n in range(4):
-                            # add a random string at the end of the pid, just consisting of ascii letters
-                            # the PIDs themselves are not really interesting anyway, so can be rewritten.
-                            newpidlabel = newpidlabel + random.choice(string.ascii_letters)
-                        if not newpidlabel in knownpids:
-                            knownpids.add(newpidlabel)
-                            pidtopidlabel[clonepid] = newpidlabel
+                        # add a random string at the end of the pid, just consisting
+                        # of ascii letters the PIDs themselves are not really
+                        # interesting anyway, so can be rewritten.
+                        new_pid_label = clonepid + "".join(random.sample(string.ascii_letters, 4))
+                        if not new_pid_label in knownpids:
+                            knownpids.add(new_pid_label)
+                            pidtopidlabel[clonepid] = new_pid_label
                             break
 
-                    parenttopid[pidtopidlabel[pid]].append(pidtopidlabel[clonepid])
-                    pidtoparent[pidtopidlabel[clonepid]] = pidtopidlabel[pid]
-                    pidtocwd[pidtopidlabel[clonepid]] = copy.deepcopy(pidtocwd[pidtopidlabel[pid]])
+                    parent_to_pid[pidtopidlabel[pid]].append(pidtopidlabel[clonepid])
+                    pid_to_parent[pidtopidlabel[clonepid]] = pidtopidlabel[pid]
+                    pid_to_cwd[pidtopidlabel[clonepid]] = copy.deepcopy(pid_to_cwd[pidtopidlabel[pid]])
                     if backlog != []:
                         for traceline in backlog:
-                            process_trace_line(traceline, defaultpid, pidtocwd, pidtocmd, directories, ignore_files, openfiles, basepath, defaultcwd, pidtopidlabel)
+                            process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd,
+                                               directories, ignore_files, openfiles, basepath,
+                                               default_cwd, pidtopidlabel)
                         backlog = []
                         backlogged = False
-                    knownchildpids.add(pidtopidlabel[clonepid])
+                    known_child_pids.add(pidtopidlabel[clonepid])
 
         if backlogged:
             backlog.append(i.strip())
@@ -555,9 +529,9 @@ def main(argv):
         knownpids.add(pidtopidlabel[pid])
 
         # then look at the lines that have either 'unfinished' or 'resumed'
-        # Because the -y flag to strace is doing the heavy lifting just a bit of processing
-        # needs to be done for open() and openat() to make sure that false positives are
-        # not included.
+        # Because the -y flag to strace is doing the heavy lifting just a bit of
+        # processing needs to be done for open() and openat() to make sure that
+        # false positives are not included.
         if "<unfinished ...>" in i or " resumed>" in i:
             if not ' resumed>' in i:
                 if 'open(' in i or 'openat(' in i:
@@ -586,7 +560,7 @@ def main(argv):
                         if "O_RDWR" in openflags or "O_WRONLY" in openflags:
                             if "O_CREAT" in openflags:
                                 if "O_EXCL" in openflags or "O_TRUNC" in openflags:
-                                    openpath = os.path.normpath(os.path.join(pidtocwd[pid], openpath))
+                                    openpath = os.path.normpath(os.path.join(pid_to_cwd[pid], openpath))
                                     ignore_files.add(openpath)
             else:
                 # look at 'resumed'
@@ -624,13 +598,12 @@ def main(argv):
                                 # add the full reconstructed path, relative to root
                                 openfiles.add(openpath)
         else:
-            process_trace_line(i.strip(), defaultpid, pidtocwd, pidtocmd, directories, ignore_files, openfiles, basepath, defaultcwd, pidtopidlabel)
+            process_trace_line(i.strip(), default_pid, pid_to_cwd, pid_to_cmd, directories,
+                               ignore_files, openfiles, basepath, default_cwd, pidtopidlabel)
 
     print("END RECONSTRUCTION", datetime.datetime.utcnow().isoformat(), file=sys.stderr)
 
-    # now compute the hashes for the files, if the correct source code is actually available
-
-    if targetdir is not None and sourcedir is not None:
+    if copy_files:
         print(f"COPYING FILES TO {targetdir}")
         for i in openfiles:
             filename = i[len(basepath)+1:]
@@ -647,14 +620,15 @@ def main(argv):
                 shutil.copy(os.path.join(sourcedir, filename), os.path.join(targetdir, basedir))
             else:
                 shutil.copy(os.path.join(sourcedir, filename), targetdir)
-    for p in pidtocmd:
-        print(p, pidtocmd[p])
 
-    for p in parenttopid:
-        if p in pidtocmd:
-            print("%s (%s) created: " % (p, pidtocmd[p]), parenttopid[p])
+    for pid in pid_to_cmd:
+        print(pid, pid_to_cmd[pid])
+
+    for pid in parent_to_pid:
+        if pid in pid_to_cmd:
+            print("%s (%s) created: " % (pid, pid_to_cmd[pid]), parent_to_pid[pid])
         else:
-            print("%s created: " % p, parenttopid[p])
+            print("%s created: " % pid, parent_to_pid[pid])
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
