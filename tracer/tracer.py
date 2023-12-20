@@ -69,7 +69,7 @@ execvere = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+
 def rewritepid(pid):
     pass
 
-def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directories, ignore_files, openfiles, basepath, default_cwd, pidtopidlabel):
+def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directories, ignore_files, openfiles, basepath, default_cwd, pid_to_pid_label):
     # then look at the 'regular' lines
     if '+++ exited with' in traceline:
         # this message can be in the trace file unless -qq is passed
@@ -82,7 +82,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
         if sigchldres is not None:
             # remove this pid from the list of pid labels
             sigchldpid = sigchldres.groups()[0]
-            del pidtopidlabel[sigchldpid]
+            del pid_to_pid_label[sigchldpid]
 
     syscallres = re.search(r"(\w+)\(", traceline)
     if syscallres is not None:
@@ -286,7 +286,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     pid_to_cwd = {}
     pid_to_cmd = {}
 
-    pidtopidlabel = {}
+    pid_to_pid_label = {}
 
     directories = set()
 
@@ -316,17 +316,17 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     backlog = []
     backlogged = False
 
-    for i in tracefile:
+    for line in tracefile:
         # either there is an exit code, or the system call is unfinished. The rest
         # is irrelevant garbage.
         # Assume that strace is running in English. Right now (March 8, 2018) strace
         # has not been translated, so this is a safe assumption.
-        if not ('=' in i or 'unfinished' in i):
+        if not ('=' in line or 'unfinished' in line):
             continue
 
         # first determine the pid of the line
-        if i.startswith('[pid '):
-            pid = pidre.match(i).groups()[0]
+        if line.startswith('[pid '):
+            pid = pidre.match(line).groups()[0]
         else:
             # This is the top level pid. It actually is possible to
             # later reconstruct the pid if the top level process
@@ -337,14 +337,14 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
             else:
                 pid = 'default'
 
-        #if 'execve(' in i:
-        #    execveres = execvere.search(i)
+        #if 'execve(' in line:
+        #    execveres = execvere.search(line)
         #    if execveres is not None:
         #        pid_to_cmd[pid] = execveres.group('command')
 
-        if 'getcwd(' in i:
+        if 'getcwd(' in line:
             if not firstgetcwd:
-                cwd = getcwdre.match(i).groups()[0]
+                cwd = getcwdre.match(line).groups()[0]
                 default_cwd = cwd
                 firstgetcwd = True
                 if 'default' not in pid_to_cwd:
@@ -353,12 +353,12 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 continue
 
         # cloned processes inherit the cwd of the parent process
-        elif 'clone(' in i:
-            if '<unfinished ...>' in i:
-                backlog.append(i.strip())
+        elif 'clone(' in line:
+            if '<unfinished ...>' in line:
+                backlog.append(line.strip())
                 backlogged = True
                 continue
-            cloneres = clonere.search(i)
+            cloneres = clonere.search(line)
             if cloneres is not None:
                 if pid not in parent_to_pid:
                     parent_to_pid[pid] = []
@@ -368,9 +368,9 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     # of ascii letters the PIDs themselves are not really
                     # interesting anyway, so can be rewritten.
                     new_pid_label = clonepid + "".join(random.sample(string.ascii_letters, 4))
-                    if not new_pid_label in knownpids:
+                    if new_pid_label not in knownpids:
                         knownpids.add(new_pid_label)
-                        pidtopidlabel[clonepid] = new_pid_label
+                        pid_to_pid_label[clonepid] = new_pid_label
                         break
                 if clonepid in known_child_pids:
                     # now rewrite the ID to something sensible first
@@ -380,7 +380,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                         # of ascii letters the PIDs themselves are not really
                         # interesting anyway, so can be rewritten.
                         newclonepid = clonepid + "".join(random.sample(string.ascii_letters, 4))
-                        if not newclonepid in known_child_pids:
+                        if newclonepid not in known_child_pids:
                             known_child_pids.add(newclonepid)
                             translatepids[clonepid] = newclonepid
                             break
@@ -423,15 +423,15 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
 
         # look through the lines with 'resumed' to find the PIDs of child processes
         # and store them.
-        if " resumed>" in i:
+        if " resumed>" in line:
             # This is an alternative way to get to the first PID in some circumstances
             if pid not in knownpids:
                 default_pid = pid
                 pid_to_cwd[pid] = copy.deepcopy(pid_to_cwd['default'])
                 if 'default' in pid_to_cmd:
                     pid_to_cmd[pid] = copy.deepcopy(pid_to_cmd['default'])
-            if 'vfork' in i:
-                vforkres = vforkresumedre.search(i)
+            if 'vfork' in line:
+                vforkres = vforkresumedre.search(line)
                 if vforkres is not None:
                     if pid not in parent_to_pid:
                         parent_to_pid[pid] = []
@@ -441,9 +441,9 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                         # of ascii letters # the PIDs themselves are not really
                         # interesting anyway, so can be rewritten.
                         new_pid_label = vforkpid + "".join(random.sample(string.ascii_letters, 4))
-                        if not new_pid_label in knownpids:
+                        if new_pid_label not in knownpids:
                             knownpids.add(new_pid_label)
-                            pidtopidlabel[vforkpid] = new_pid_label
+                            pid_to_pid_label[vforkpid] = new_pid_label
                             break
                     if vforkpid in known_child_pids:
                         # now rewrite the ID to something sensible first
@@ -453,7 +453,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                             # of ascii letters the PIDs themselves are not really
                             # interesting anyway, so can be rewritten.
                             newclonepid = vforkpid + "".join(random.sample(string.ascii_letters, 4))
-                            if not newclonepid in known_child_pids:
+                            if newclonepid not in known_child_pids:
                                 known_child_pids.add(newclonepid)
                                 translatepids[vforkpid] = newclonepid
                                 break
@@ -493,58 +493,58 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     pid_to_parent[vforkpid] = pid
                     pid_to_cwd[vforkpid] = copy.deepcopy(pid_to_cwd[pid])
                     known_child_pids.add(vforkpid)
-            elif 'clone' in i:
-                cloneres = cloneresumedre.search(i.strip())
+            elif 'clone' in line:
+                cloneres = cloneresumedre.search(line.strip())
                 if cloneres is not None:
-                    if not pidtopidlabel[pid] in parent_to_pid:
-                        parent_to_pid[pidtopidlabel[pid]] = []
+                    if pid_to_pid_label[pid] not in parent_to_pid:
+                        parent_to_pid[pid_to_pid_label[pid]] = []
                     clonepid = cloneres.groups()[0]
                     while True:
                         # add a random string at the end of the pid, just consisting
                         # of ascii letters the PIDs themselves are not really
                         # interesting anyway, so can be rewritten.
                         new_pid_label = clonepid + "".join(random.sample(string.ascii_letters, 4))
-                        if not new_pid_label in knownpids:
+                        if new_pid_label not in knownpids:
                             knownpids.add(new_pid_label)
-                            pidtopidlabel[clonepid] = new_pid_label
+                            pid_to_pid_label[clonepid] = new_pid_label
                             break
 
-                    parent_to_pid[pidtopidlabel[pid]].append(pidtopidlabel[clonepid])
-                    pid_to_parent[pidtopidlabel[clonepid]] = pidtopidlabel[pid]
-                    pid_to_cwd[pidtopidlabel[clonepid]] = copy.deepcopy(pid_to_cwd[pidtopidlabel[pid]])
+                    parent_to_pid[pid_to_pid_label[pid]].append(pid_to_pid_label[clonepid])
+                    pid_to_parent[pid_to_pid_label[clonepid]] = pid_to_pid_label[pid]
+                    pid_to_cwd[pid_to_pid_label[clonepid]] = copy.deepcopy(pid_to_cwd[pid_to_pid_label[pid]])
                     if backlog != []:
                         for traceline in backlog:
                             process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd,
                                                directories, ignore_files, openfiles, basepath,
-                                               default_cwd, pidtopidlabel)
+                                               default_cwd, pid_to_pid_label)
                         backlog = []
                         backlogged = False
-                    known_child_pids.add(pidtopidlabel[clonepid])
+                    known_child_pids.add(pid_to_pid_label[clonepid])
 
         if backlogged:
-            backlog.append(i.strip())
+            backlog.append(line.strip())
             continue
 
         # add the pid to the list of known PIDs
-        knownpids.add(pidtopidlabel[pid])
+        knownpids.add(pid_to_pid_label[pid])
 
         # then look at the lines that have either 'unfinished' or 'resumed'
         # Because the -y flag to strace is doing the heavy lifting just a bit of
         # processing needs to be done for open() and openat() to make sure that
         # false positives are not included.
-        if "<unfinished ...>" in i or " resumed>" in i:
-            if not ' resumed>' in i:
-                if 'open(' in i or 'openat(' in i:
+        if "<unfinished ...>" in line or " resumed>" in line:
+            if not ' resumed>' in line:
+                if 'open(' in line or 'openat(' in line:
                     processopen = False
-                    if 'openat(' in i:
-                        openatres = re.search(r"openat\((\w+), \"([<>\w/\-+,.]+)\", ([\w|]+)", i.strip())
+                    if 'openat(' in line:
+                        openatres = re.search(r"openat\((\w+), \"([<>\w/\-+,.]+)\", ([\w|]+)", line.strip())
                         if openatres is not None:
                             openfd = os.path.normpath(openatres.groups()[0])
                             openpath = os.path.normpath(openatres.groups()[1])
                             openflags = set(openatres.groups()[2].split('|'))
                             processopen = True
-                    elif 'open(' in i:
-                        openres = re.search(r"open\(\"([<>\w/\-+,.*$:;]+)\", ([\w|]+)", i.strip())
+                    elif 'open(' in line:
+                        openres = re.search(r"open\(\"([<>\w/\-+,.*$:;]+)\", ([\w|]+)", line.strip())
                         if openres is not None:
                             openpath = os.path.normpath(openres.groups()[0])
                             openflags = set(openres.groups()[1].split('|'))
@@ -564,13 +564,13 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                     ignore_files.add(openpath)
             else:
                 # look at 'resumed'
-                if '<... open' in i:
-                    openres = re.search(r'<... open(?:at)? resumed> \)\s+=\s+(?P<return>\-?\d+)', i)
+                if '<... open' in line:
+                    openres = re.search(r'<... open(?:at)? resumed> \)\s+=\s+(?P<return>\-?\d+)', line)
                     if openres is not None:
                         openreturn = openres.group('return')
                         if openreturn != '-1':
                             # only look at files that can be succesfully opened
-                            openres = re.search(r'<... open(:?at)? resumed> \)\s+=\s+\d+<(?P<path>.*)>$', i)
+                            openres = re.search(r'<... open(:?at)? resumed> \)\s+=\s+\d+<(?P<path>.*)>$', line)
                             if openres is not None:
                                 openpath = openres.group('path')
 
@@ -598,8 +598,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                 # add the full reconstructed path, relative to root
                                 openfiles.add(openpath)
         else:
-            process_trace_line(i.strip(), default_pid, pid_to_cwd, pid_to_cmd, directories,
-                               ignore_files, openfiles, basepath, default_cwd, pidtopidlabel)
+            process_trace_line(line.strip(), default_pid, pid_to_cwd, pid_to_cmd, directories,
+                               ignore_files, openfiles, basepath, default_cwd, pid_to_pid_label)
 
     print("END RECONSTRUCTION", datetime.datetime.utcnow().isoformat(), file=sys.stderr)
 
