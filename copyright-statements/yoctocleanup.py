@@ -98,6 +98,7 @@ def main(argv):
                        '/.pc/.quilt_',
                        '/.pc/.version',
                        '/.pc/applied-patches',
+                       '/autom4te.cache/',
                       ]
 
     newjson = {}
