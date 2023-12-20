@@ -144,7 +144,6 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                         pid_to_cwd[pid] = os.path.normpath(os.path.join(basepath, pid_to_cwd[pid], chdirpath))
     elif syscall == 'open':
         openres = openre.search(traceline)
-        print(openres, traceline)
         if openres is not None:
             openreturn = openres.groups()[2]
             if openreturn == '-1':
@@ -291,6 +290,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
 
     pid_to_cwd = {}
     pid_to_cmd = {}
+    pid_to_parent = {}
 
     # lookup table for current PIDs to a unique PID.
     # This is because PIDs can be reused for processes.
@@ -404,10 +404,10 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     # now rewrite the ID to something sensible first
                     translate_pids = {}
                     while True:
-                        newclonepid = rewrite_pid(clonepid)
-                        if newclonepid not in known_child_pids:
-                            known_child_pids.add(newclonepid)
-                            translate_pids[clonepid] = newclonepid
+                        new_clone_pid = rewrite_pid(clonepid)
+                        if new_clone_pid not in known_child_pids:
+                            known_child_pids.add(new_clone_pid)
+                            translate_pids[clonepid] = new_clone_pid
                             break
 
                     while len(translate_pids) != 0:
@@ -471,10 +471,10 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                         # now rewrite the ID to something sensible first
                         translate_pids = {}
                         while True:
-                            newclonepid = rewrite_pid(vforkpid)
-                            if newclonepid not in known_child_pids:
-                                known_child_pids.add(newclonepid)
-                                translate_pids[vforkpid] = newclonepid
+                            new_clone_pid = rewrite_pid(vforkpid)
+                            if new_clone_pid not in known_child_pids:
+                                known_child_pids.add(new_clone_pid)
+                                translate_pids[vforkpid] = new_clone_pid
                                 break
 
                         while len(translate_pids) != 0:
@@ -551,22 +551,22 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         if "<unfinished ...>" in line or " resumed>" in line:
             if not ' resumed>' in line:
                 if 'open(' in line or 'openat(' in line:
-                    processopen = False
+                    process_open = False
                     if 'openat(' in line:
                         openatres = re.search(r"openat\((\w+), \"([<>\w/\-+,.]+)\", ([\w|]+)", line.strip())
                         if openatres is not None:
                             openfd = os.path.normpath(openatres.groups()[0])
                             openpath = os.path.normpath(openatres.groups()[1])
                             open_flags = set(openatres.groups()[2].split('|'))
-                            processopen = True
+                            process_open = True
                     elif 'open(' in line:
                         openres = re.search(r"open\(\"([<>\w/\-+,.*$:;]+)\", ([\w|]+)", line.strip())
                         if openres is not None:
                             openpath = os.path.normpath(openres.groups()[0])
                             open_flags = set(openres.groups()[1].split('|'))
-                            processopen = True
+                            process_open = True
 
-                    if processopen:
+                    if process_open:
                         # now check the flags to see if a file is new. If so, it can
                         # be added to ignore_files
                         # Don't look at directories here, as sometimes regular files are
