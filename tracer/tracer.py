@@ -46,6 +46,7 @@ INTERESTING_SYSCALLS = ['open', 'openat', 'chdir', 'fchdir',
 
 # regular expression for process IDs (PIDs)
 pidre = re.compile(r'\[pid\s+(\d+)\]')
+pid_with_syscall_re = re.compile(r'\[pid\s+(\d+)\]\s+([\w+)\(')
 
 # some precompiled regular expressions for interesting system calls
 # valid filename characters:
@@ -336,6 +337,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 pid = default_pid
             else:
                 pid = 'default'
+                pid_to_pid_label[pid] = pid
 
         #if 'execve(' in line:
         #    execveres = execvere.search(line)
