@@ -46,7 +46,7 @@ INTERESTING_SYSCALLS = ['open', 'openat', 'chdir', 'fchdir',
 
 # regular expression for process IDs (PIDs)
 pidre = re.compile(r'\[pid\s+(\d+)\]')
-pid_with_syscall_re = re.compile(r'\[pid\s+(\d+)\]\s+([\w+)\(')
+pid_with_syscall_re = re.compile(r'\[pid\s+(\d+)\]\s+(\w+)\(')
 
 # some precompiled regular expressions for interesting system calls
 # valid filename characters:
@@ -59,7 +59,7 @@ openatre = re.compile(r"openat\((\w+), \"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\
 openatre2 = re.compile(r"openat\((\w+)<(.*)>, \"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
 renamere = re.compile(r"rename\(\"([\w/\-+,.]+)\",\s+\"([\w/\-+,.]+)\"\)\s+=\s+(\-?\d+)")
 clonere = re.compile(r"clone\([\w/\-+,.=]+,\s+[\w|=]+,\s+[\w=]+?\)\s+=\s+(\-?\d+)")
-cloneresumedre = re.compile(r"clone\s*resumed>\s*.*=\s+(\-?\d+)$")
+clone_resumed_re = re.compile(r"clone\s*resumed>\s*.*=\s+(\-?\d+)$")
 vforkresumedre = re.compile(r"vfork\s*resumed>\s*\)\s*=\s*(\d+)")
 vforkre = re.compile(r"vfork\(\s*\)\s*=\s*(\d+)")
 #execvere = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+\s+/\*\s+\d+\s+vars\s+\*/\)\s*=\s*(?P<returncode>\-?\d+)")
@@ -70,7 +70,7 @@ execvere = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+
 def rewritepid(pid):
     pass
 
-def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directories, ignore_files, openfiles, basepath, default_cwd, pid_to_pid_label):
+def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directories, ignore_files, open_files, basepath, default_cwd, pid_to_pid_label):
     # then look at the 'regular' lines
     if '+++ exited with' in traceline:
         # this message can be in the trace file unless -qq is passed
@@ -155,7 +155,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                 return
 
             # if files have already been recorded they are not interesting
-            if full_open_path in openfiles:
+            if full_open_path in open_files:
                 return
 
             # directories are not interesting, except to store the
@@ -166,7 +166,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
             # absolute paths are only relevant if
             # coming from the same source code directory
             if openpath.startswith('/'):
-                if not openpath.startswith(basepath):
+                if not openpath.startswith(str(basepath)):
                     return
             # now check the flags to see if a file is new. If so, it can
             # be added to ignore_files
@@ -176,7 +176,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                         ignore_files.add(full_open_path)
                         return
             # add the full reconstructed path, relative to root
-            openfiles.add(full_open_path)
+            open_files.add(full_open_path)
 
     if syscall == 'openat':
         openres = openatre.search(traceline)
@@ -204,14 +204,14 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                 return
 
             # if files have already been recorded they are not interesting
-            if full_open_path in openfiles:
+            if full_open_path in open_files:
                 return
             # directories are not interesting, so record them to ignore them
             if 'O_DIRECTORY' in openflags:
                 directories.add(full_open_path)
                 return
             if openpath.startswith('/'):
-                if not openpath.startswith(basepath):
+                if not openpath.startswith(str(basepath)):
                     return
             # now check the flags to see if a file is new
             if "O_RDWR" in openflags or "O_WRONLY" in openflags:
@@ -221,7 +221,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                         return
 
             # add the full reconstructed path, relative to root
-            openfiles.add(full_open_path)
+            open_files.add(full_open_path)
 
     if syscall == 'rename':
         renameres = renamere.search(traceline)
@@ -233,8 +233,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
             if sourcefile in ignore_files:
                 ignore_files.add(targetfile)
 
-
-@click.command(short_help='Process TechInfoDepot XML dump')
+@click.command(short_help='Process strace output')
 @click.option('--basepath', '-b', 'basepath', required=True,
               help='base path of source director during build', type=str)
 @click.option('--buildid', '-u', 'buildid', required=True,
@@ -245,12 +244,14 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
               help='directory to copy/write files that were opened during the build',
               type=click.Path(path_type=pathlib.Path))
 @click.option('--tracefile', '-f', 'tracefile', required=True, help='path to trace file',
-               type=click.Path('r', path_type=pathlib.Path))
+               type=click.File('r'))
 def main(basepath, buildid, sourcedir, targetdir, tracefile):
     # the base path of the source code directory used during the build.
     # This might actually be different than --sourcedir
     # in case the trace file is processed on a different machine
-    if not os.path.isabs(basepath):
+    basepath = pathlib.Path(os.path.normpath(basepath))
+
+    if not basepath.is_absolute():
         raise click.ClickException("--basepath should point to an absolute path")
 
     copy_files = False
@@ -275,11 +276,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         raise click.ClickException("build identifier empty")
 
     # TODO: symbolic links are actually resolved by strace when using
-    # the -y option, so make sure that the basepath is first resolved as
-    # well.
-    basepath = os.path.normpath(basepath)
-
-    tracefile = open(tracefile, 'r')
+    # the -y option. Make sure this is properly handled.
 
     default_cwd = ''
     firstgetcwd = False
@@ -309,7 +306,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     # set a dummy value for the first PID
     default_pid = None
 
-    openfiles = set()
+    open_files = set()
 
     # a list of files created or overwritten, so can be ignored later on
     ignore_files = set()
@@ -325,10 +322,16 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         if not ('=' in line or 'unfinished' in line):
             continue
 
-        # first determine the pid of the line
-        if line.startswith('[pid '):
-            pid = pidre.match(line).groups()[0]
+        pid_syscall = pid_with_syscall_re.match(line)
+        if pid_syscall is not None:
+            pid, syscall = pid_syscall.groups()
         else:
+            syscall_res = re.match(r"(\w+)\(", line)
+            if syscall_res is None:
+                # garbage line
+                continue
+
+            syscall = syscall_res.groups()[0]
             # This is the top level pid. It actually is possible to
             # later reconstruct the pid if the top level process
             # forks a process and the process returns, or if a vfork
@@ -339,12 +342,12 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 pid = 'default'
                 pid_to_pid_label[pid] = pid
 
-        #if 'execve(' in line:
+        #if syscall == 'execve':
         #    execveres = execvere.search(line)
         #    if execveres is not None:
         #        pid_to_cmd[pid] = execveres.group('command')
 
-        if 'getcwd(' in line:
+        if syscall == 'getcwd':
             if not firstgetcwd:
                 cwd = getcwdre.match(line).groups()[0]
                 default_cwd = cwd
@@ -355,7 +358,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 continue
 
         # cloned processes inherit the cwd of the parent process
-        elif 'clone(' in line:
+        elif syscall == 'clone':
             if '<unfinished ...>' in line:
                 backlog.append(line.strip())
                 backlogged = True
@@ -496,7 +499,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     pid_to_cwd[vforkpid] = copy.deepcopy(pid_to_cwd[pid])
                     known_child_pids.add(vforkpid)
             elif 'clone' in line:
-                cloneres = cloneresumedre.search(line.strip())
+                cloneres = clone_resumed_re.search(line.strip())
                 if cloneres is not None:
                     if pid_to_pid_label[pid] not in parent_to_pid:
                         parent_to_pid[pid_to_pid_label[pid]] = []
@@ -517,7 +520,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     if backlog != []:
                         for traceline in backlog:
                             process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd,
-                                               directories, ignore_files, openfiles, basepath,
+                                               directories, ignore_files, open_files, basepath,
                                                default_cwd, pid_to_pid_label)
                         backlog = []
                         backlogged = False
@@ -579,7 +582,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                 # absolute paths are only relevant if
                                 # coming from the same source code directory
                                 if openpath.startswith('/'):
-                                    if not openpath.startswith(basepath):
+                                    if not openpath.startswith(str(basepath)):
                                         continue
 
                                 if openpath in ignore_files:
@@ -588,7 +591,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                     # original source code tree
                                     continue
 
-                                if openpath in openfiles:
+                                if openpath in open_files:
                                     # files that are already recorded as open
                                     # can be ignored
                                     continue
@@ -598,16 +601,16 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                     continue
 
                                 # add the full reconstructed path, relative to root
-                                openfiles.add(openpath)
+                                open_files.add(openpath)
         else:
             process_trace_line(line.strip(), default_pid, pid_to_cwd, pid_to_cmd, directories,
-                               ignore_files, openfiles, basepath, default_cwd, pid_to_pid_label)
+                               ignore_files, open_files, basepath, default_cwd, pid_to_pid_label)
 
     print("END RECONSTRUCTION", datetime.datetime.utcnow().isoformat(), file=sys.stderr)
 
     if copy_files:
         print(f"COPYING FILES TO {targetdir}")
-        for i in openfiles:
+        for i in open_files:
             filename = i[len(basepath)+1:]
             basedir = os.path.dirname(i[len(basepath)+1:])
             if not os.path.exists(os.path.join(sourcedir, filename)):
@@ -630,7 +633,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         if pid in pid_to_cmd:
             print("%s (%s) created: " % (pid, pid_to_cmd[pid]), parent_to_pid[pid])
         else:
-            print("%s created: " % pid, parent_to_pid[pid])
+            print(f"{pid} created: ", parent_to_pid[pid])
 
 if __name__ == "__main__":
     main()
