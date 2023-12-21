@@ -40,11 +40,11 @@ import sys
 
 import click
 
-IGNORE_DIRECTORIES = ['/dev/', '/proc/', '/sys']
+IGNORE_DIRECTORIES = ['/dev/', '/proc/', '/sys/']
 
 # there are only a few syscalls that are interesting
 INTERESTING_SYSCALLS = ['open', 'openat', 'chdir', 'fchdir',
-                        'rename', 'clone', 'symlink', 'symlinkat']
+                        'rename', 'renameat2', 'clone', 'clone3', 'symlink', 'symlinkat']
 
 # regular expression for process IDs (PIDs)
 pidre = re.compile(r'\[pid\s+(\d+)\]')
@@ -123,10 +123,10 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
             fchdirres = fchdirre.search(traceline)
             if fchdirres is not None:
                 fchdirfd = int(fchdirres.groups()[0])
-                fullchdirpath = fchdirres.groups()[1]
+                full_chdir_path = fchdirres.groups()[1]
                 fchdirresult = fchdirres.groups()[2]
-                pid_to_cwd[pid] = fullchdirpath
-                directories.add(fullchdirpath)
+                pid_to_cwd[pid] = full_chdir_path
+                directories.add(full_chdir_path)
         else:
             chdirres = chdirre.search(traceline)
             if chdirres is not None:
@@ -297,6 +297,10 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     pid_to_pid_label = {}
 
     directories = set()
+
+    # store paths of programs that are used during the build
+    # process, typically in execve()
+    exec_programs = set()
 
     # store which processes create other processes and vice versa
     parent_to_pid = {}
@@ -537,6 +541,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                         backlogged = False
                     known_child_pids.add(pid_to_pid_label[clonepid])
 
+        # store the line for later processing
         if backlogged:
             backlog.append(line.strip())
             continue
