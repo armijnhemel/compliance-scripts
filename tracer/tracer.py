@@ -266,13 +266,13 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
     # a directory where the source code files can be found for copying.
     # These might be the same as base path, but doesn't have to be.
     if sourcedir is not None:
-        if not os.path.exists(sourcedir):
+        if not sourcedir.exists():
             raise click.ClickException("directory with source code files does not exist")
         copy_files = True
 
     # directory to copy the used files to from sourcedir
     if targetdir is not None:
-        if not os.path.exists(targetdir):
+        if not targetdir.exists():
             raise click.ClickException("target directory does not exist")
         if not copy_files:
             raise click.ClickException("target directory defined but '--sourcedir' is not set")
