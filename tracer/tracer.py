@@ -400,12 +400,15 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 if pid not in parent_to_pid:
                     parent_to_pid[pid] = []
                 clonepid = cloneres.groups()[0]
+
+                # generate a new PID label for the cloned process
                 while True:
                     new_pid_label = rewrite_pid(clonepid)
                     if new_pid_label not in known_pids:
                         known_pids.add(new_pid_label)
                         pid_to_pid_label[clonepid] = new_pid_label
                         break
+
                 if clonepid in known_child_pids:
                     # now rewrite the ID to something sensible first
                     translate_pids = {}
@@ -444,8 +447,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                 pid_to_parent[translate_pids[t]] = copy.deepcopy(pid_to_parent[t])
                                 del pid_to_parent[t]
                             pids_to_remove.add(t)
-                        for t in pids_to_remove:
-                            del translate_pids[t]
+                        for translated_pid in pids_to_remove:
+                            del translate_pids[translated_pid]
 
                 parent_to_pid[pid].append(clonepid)
                 pid_to_parent[clonepid] = pid
@@ -511,8 +514,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                                     pid_to_parent[translate_pids[t]] = copy.deepcopy(pid_to_parent[t])
                                     del pid_to_parent[t]
                                 pids_to_remove.add(t)
-                            for t in pids_to_remove:
-                                del translate_pids[t]
+                            for translated_pid in pids_to_remove:
+                                del translate_pids[translated_pid]
 
                     parent_to_pid[pid].append(vforkpid)
                     pid_to_parent[vforkpid] = pid
@@ -534,7 +537,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                     parent_to_pid[pid_to_pid_label[pid]].append(pid_to_pid_label[clonepid])
                     pid_to_parent[pid_to_pid_label[clonepid]] = pid_to_pid_label[pid]
                     pid_to_cwd[pid_to_pid_label[clonepid]] = copy.deepcopy(pid_to_cwd[pid_to_pid_label[pid]])
-                    if backlog != []:
+                    if backlog:
                         for traceline in backlog:
                             process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd,
                                                directories, ignore_files, open_files, basepath,
