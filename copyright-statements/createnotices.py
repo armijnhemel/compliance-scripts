@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Copyright Armijn Hemel for Tjaldur Software Governance Solutions
-# SPDX-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-only
 
 # This scripts processes output of ScanCode 3.0.x and outputs a file
 # with license information, author information and copyright statements,
