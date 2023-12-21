@@ -357,6 +357,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 continue
 
             syscall = syscall_res.groups()[0]
+
             # This is a line for the top level pid. It actually is possible
             # to later find the actual pid if the top level process forks
             # a process and the process returns, or if a vfork call is resumed.
@@ -370,10 +371,11 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         # as these can change relevant metadata and this metadata
         # needs to be properly stored.
 
-        #if syscall == 'execve':
-        #    execveres = execvere.search(line)
-        #    if execveres is not None:
-        #        pid_to_cmd[pid] = execveres.group('command')
+        if syscall == 'execve':
+            execveres = execvere.search(line)
+            if execveres is not None:
+                #pid_to_cmd[pid] = execveres.group('command')
+                exec_programs.add(execveres.group('command'))
 
         if syscall == 'getcwd' and not first_getcwd:
             # record the first instance of getcwd()
