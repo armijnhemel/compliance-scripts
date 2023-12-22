@@ -17,13 +17,15 @@
 #
 # First trace a Linux kernel build with (for example) the following command:
 #
-# strace -o ../linux-strace -e trace=%file,%process,dup,dup2,close,pipe,fchdir -y -Y -qq -f --seccomp-bpf -s 256 make
+# strace -o ../linux-strace -e trace=%file,%process,dup,dup2,dup3,close,pipe,tee,fchdir -y -Y -qq -f --seccomp-bpf -s 256 make
+#
+# (TODO: is 'close()' really needed?)
 #
 # and then run this script on the output.
 #
 # Alternatively, to save diskspace for the trace file (sometimes up to 50%), use:
 #
-# strace -o ../linux-strace -e trace=chdir,getcwd,mkdir,open,openat,rename,renameat2,unlink,unlinkat,%process,dup,dup2,close,pipe,fchdir -y -Y -qq -f --seccomp-bpf -s 256 make
+# strace -o ../linux-strace -e trace=chdir,getcwd,link,linkat,mkdir,open,openat,rename,renameat2,sendfile,symlink,symlinkat,unlink,unlinkat,%process,dup,dup2,dup3,close,pipe,tee,fchdir -y -Y -qq -f --seccomp-bpf -s 256 make
 #
 # The following syscalls (from %file) can be ignored:
 #
@@ -41,6 +43,14 @@
 # * mkdir
 # * unlink
 # * unlinkat
+#
+# TODO: There are probably more calls that need to be added
+# * fcntl
+# * sendfile64
+#
+# TODO: what to do with writes to files? There are sometimes zero sized files
+# that are merely touched, but no content is written to them. Should write
+# calls such as write() also be tracked?
 #
 # Make sure there is enough disk space available, as trace files for the
 # Linux kernel tend to be quite big.
