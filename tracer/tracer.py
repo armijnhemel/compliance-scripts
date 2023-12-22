@@ -17,13 +17,30 @@
 #
 # First trace a Linux kernel build with (for example) the following command:
 #
-# strace -e trace=%file,process,dup,dup2,close,pipe,fchdir -y -qq -f -s 256 make 2> ../linux-strace
+# strace -o ../linux-strace -e trace=%file,%process,dup,dup2,close,pipe,fchdir -y -Y -qq -f --seccomp-bpf -s 256 make
 #
 # and then run this script on the output.
 #
-# Alternatively, to save diskspace for the trace file (easily 50%), use:
+# Alternatively, to save diskspace for the trace file (sometimes up to 50%), use:
 #
-# strace -e trace=%process,dup,dup2,open,openat,close,rename,getcwd,chdir,fchdir,pipe -y -qq -f -s 256 make 2> ../linux-strace
+# strace -o ../linux-strace -e trace=chdir,getcwd,mkdir,open,openat,rename,renameat2,unlink,unlinkat,%process,dup,dup2,close,pipe,fchdir -y -Y -qq -f --seccomp-bpf -s 256 make
+#
+# The following syscalls (from %file) can be ignored:
+#
+# * access
+# * chmod
+# * faccessat2
+# * fchmodat
+# * newfstatat
+# * readlink
+# * statfs
+# * utimensat
+#
+# The following syscalls (from %file) can possibly be ignored:
+#
+# * mkdir
+# * unlink
+# * unlinkat
 #
 # Make sure there is enough disk space available, as trace files for the
 # Linux kernel tend to be quite big.
