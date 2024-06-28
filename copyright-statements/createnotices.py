@@ -138,6 +138,17 @@ def main(argv):
         print("Cannot parse ScanCode JSON, exiting", file=sys.stderr)
         sys.exit(1)
 
+    output_format_version = None
+
+    # check which output format version is used: this changed in 32.0
+    for h in scjson['headers']:
+        if 'output_format_version' in h:
+            output_format_version = h['output_format_version']
+
+    if output_format_version is None:
+        print("Format version not found in Scancode output, output format too old", file=sys.stderr)
+        sys.exit(1)
+
     # store if a real file was opened, or stdout is used
     outfile_opened = False
 
