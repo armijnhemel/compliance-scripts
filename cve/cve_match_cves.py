@@ -15,7 +15,8 @@ import click
 
 @click.command(short_help='process CVE data and extract useful data')
 #@click.option('--config-file', '-c', required=True, help='configuration file', type=click.File('r'))
-@click.option('--cve-directory', '-d', required=True, help='CVE XML file', type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option('--cve-directory', '-d', required=True, help='directory with CVE JSON files',
+              type=click.Path(exists=True, path_type=pathlib.Path))
 def main(cve_directory):
     if not cve_directory.is_dir():
         raise click.BadParameter('parameter should be a directory')
