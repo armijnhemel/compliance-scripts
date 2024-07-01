@@ -16,23 +16,56 @@ are modest.
 
 After running ScanCode simply supply the path of the JSON result file:
 
-```
+```console
 $ python scancode_license_tui.py -j /path/to/result/json
 ```
 
 for example if the result is found in a file `/tmp/busybox.json`:
 
-```
+```console
 $ python scancode_license_tui.py -j /tmp/busybox.json
 ```
 
 To display only results that ScanCode found use the `--results-only` flag:
 
-```
+```console
 $ python scancode_license_tui.py -j /path/to/result/json --results-only
 ```
 
 Quiting the tool: CTRL-q
+
+# Scancode pretty printer
+
+To print some of the results there is also a fairly similar script that can
+print a decorated file tree as well as the results table per file, similar to
+the ones from the TUI.
+
+To print a tree:
+
+```console
+$ python scancode_license_pp.py print-tree -j /path/to/result/json
+```
+
+for example:
+
+```console
+$ python scancode_license_pp.py print-tree -j /tmp/busybox.json
+```
+
+To print the tables with results (1 per file):
+
+```console
+$ python scancode_license_pp.py print -j /path/to/result/json
+```
+
+for example:
+
+```console
+$ python scancode_license_pp.py print -j /tmp/busybox.json
+```
+
+To reduce the size of the output when pretty printing the individual tables the
+`--results-only` flag can be used.
 
 [scancode]:https://github.com/nexB/scancode-toolkit
 [rich]:https://github.com/Textualize/rich
