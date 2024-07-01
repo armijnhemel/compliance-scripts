@@ -38,10 +38,11 @@ class ScancodeLicenseBrowser(App):
 
     CSS_PATH = "scancode_license_tui.css"
 
-    def __init__(self, result, source_directory, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, result, source_directory, results_only, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.json_file = result
         self.source_directory = source_directory
+        self.results_only = results_only
 
     def compose(self) -> ComposeResult:
         # read the scancode results
@@ -101,8 +102,12 @@ class ScancodeLicenseBrowser(App):
                         extras.append(" \U000024b8")
                     if scancode_dict[node_name]['license_detections']:
                         extras.append(" \U000024c1")
-                    if extras != '':
+
+                    if extras:
                         node_pretty_name += " ".join(extras)
+                    else:
+                        if self.results_only:
+                            continue
                     if node_name in scancode_dict:
                         node = parent_node.add_leaf(node_pretty_name, data=scancode_dict[node_name])
                     else:
@@ -168,7 +173,8 @@ class ScancodeLicenseBrowser(App):
 @click.command(short_help='Interactive Scancode result browser')
 @click.option('--result', '-j', required=True, help='Scancode result JSON', type=click.Path(path_type=pathlib.Path, exists=True))
 @click.option('--source-directory', '-d', help='source code directory', type=click.Path(path_type=pathlib.Path, exists=True))
-def main(result, source_directory):
+@click.option('--results-only', is_flag=True, help='only show entries with results')
+def main(result, source_directory, results_only):
     # quick check to see if the JSON data is actually valid
     if source_directory is not None:
         if not source_directory.is_dir():
@@ -182,7 +188,7 @@ def main(result, source_directory):
         print("invalid JSON, exiting.", file=sys.stderr)
         sys.exit(1)
 
-    app = ScancodeLicenseBrowser(result, source_directory)
+    app = ScancodeLicenseBrowser(result, source_directory, results_only)
     app.run()
 
 if __name__ == "__main__":
