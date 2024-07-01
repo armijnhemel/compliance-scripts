@@ -13,6 +13,7 @@ from typing import Any
 import click
 
 from rich.console import Group, group
+from rich.panel import Panel
 from rich import print_json
 import rich.table
 
@@ -32,7 +33,7 @@ from textual.widgets.tree import TreeNode
 
 class ScancodeLicenseBrowser(App):
     BINDINGS = [
-        Binding(key="q", action="quit", description="Quit"),
+        Binding(key="ctrl+q", action="quit", description="Quit"),
     ]
 
     CSS_PATH = "scancode_license_tui.css"
@@ -137,6 +138,18 @@ class ScancodeLicenseBrowser(App):
         pass
 
     @group()
+    def create_license_table(self, results):
+        for r in results:
+            result_table = rich.table.Table('', '', title=r['license_expression'], show_lines=True, show_header=False)
+            for m in r['matches']:
+                result_table.add_row('License expression', m['license_expression'])
+                result_table.add_row('License expression (SPDX)', m['spdx_license_expression'])
+                result_table.add_row('Score', str(m['score']))
+                result_table.add_row('Rule', m['rule_identifier'])
+                result_table.add_row('Rule URL', m['rule_url'])
+            yield result_table
+
+    @group()
     def build_meta_report(self, scancode_result):
         if scancode_result:
             meta_table = rich.table.Table('', '', title='Scancode data', show_lines=True, show_header=False)
@@ -144,12 +157,12 @@ class ScancodeLicenseBrowser(App):
             meta_table.add_row('Type', scancode_result['type'])
             meta_table.add_row('Detected licenses', scancode_result['detected_license_expression'])
             meta_table.add_row('Detected licenses (SPDX)', scancode_result['detected_license_expression_spdx'])
-            meta_table.add_row('License detections', json.dumps(scancode_result['license_detections']))
-            meta_table.add_row('License clues', json.dumps(scancode_result['license_clues']))
+            meta_table.add_row('License detections', self.create_license_table(scancode_result['license_detections']))
+            #meta_table.add_row('License clues', json.dumps(scancode_result['license_clues']))
             meta_table.add_row('Percentage of license text', str(scancode_result['percentage_of_license_text']))
-            meta_table.add_row('Copyrights', json.dumps(scancode_result['copyrights']))
-            meta_table.add_row('Holders', json.dumps(scancode_result['holders']))
-            meta_table.add_row('Authors', json.dumps(scancode_result['authors']))
+            meta_table.add_row('Copyrights', "\n\n".join([x['copyright'] for x in scancode_result['copyrights']]))
+            #meta_table.add_row('Holders', json.dumps(scancode_result['holders']))
+            meta_table.add_row('Authors', "\n\n".join([x['author'] for x in scancode_result['authors']]))
             yield meta_table
 
 @click.command(short_help='Interactive Scancode result browser')
