@@ -32,5 +32,7 @@ To display only results that ScanCode found use the `--results-only` flag:
 $ python scancode_license_tui.py -j /path/to/result/json --results-only
 ```
 
+Quiting the tool: CTRL-q
+
 [scancode]:https://github.com/nexB/scancode-toolkit
 [rich]:https://github.com/Textualize/rich
