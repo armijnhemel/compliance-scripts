@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # Copyright 2018 Armijn Hemel for Tjaldur Software Governance Solutions
-# SPDX-Identifier: GPL-3.0
+# SPDX-License-Identifier: GPL-3.0
 
 # This scripts processes a Docker data structure and pretty prints some
 # statistics about it.
