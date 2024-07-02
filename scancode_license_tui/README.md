@@ -59,17 +59,31 @@ $ python scancode_license_pp.py print-tree -j /tmp/busybox.json
 To print the tables with results (1 per file):
 
 ```console
-$ python scancode_license_pp.py print -j /path/to/result/json
+$ python scancode_license_pp.py print-results -j /path/to/result/json
 ```
 
 for example:
 
 ```console
-$ python scancode_license_pp.py print -j /tmp/busybox.json
+$ python scancode_license_pp.py print-results -j /tmp/busybox.json
 ```
 
 To reduce the size of the output when pretty printing the individual tables the
 `--results-only` flag can be used.
+
+To ignore values (so they are not printed) the `--ignore` flag can be used.
+This flag can be used multiple times to ignore multiple values. Currently the
+following values can be ignored:
+
+* authors
+* copyrights
+* copyright holders
+* license detections
+* percentage of license text
+
+```console
+$ python scancode_license_pp.py print-results -j /tmp/busybox.json --ignore=authors --ignore=percentage
+```
 
 [scancode]:https://github.com/nexB/scancode-toolkit
 [rich]:https://github.com/Textualize/rich

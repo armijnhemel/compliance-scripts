@@ -31,18 +31,34 @@ def create_license_table(results):
             result_table.add_row('Rule URL', m['rule_url'])
         yield result_table
 
-def build_meta_report(scancode_result):
-    meta_table = rich.table.Table('', '', title='Scancode data', show_lines=True, show_header=False)
+def build_meta_report(scancode_result, ignore):
+    meta_table = rich.table.Table('', '', title='', show_lines=True, show_header=False)
+    #meta_table = rich.table.Table('', '', title=scancode_result['path'], show_lines=True, show_header=False)
     meta_table.add_row('Path', scancode_result['path'])
-    meta_table.add_row('Type', scancode_result['type'])
+
+    # Only files are added to the report, so adding a row for the file type makes little sense
+    #meta_table.add_row('Type', scancode_result['type'])
+
     meta_table.add_row('Detected licenses', scancode_result['detected_license_expression'])
     meta_table.add_row('Detected licenses (SPDX)', scancode_result['detected_license_expression_spdx'])
-    meta_table.add_row('License detections', create_license_table(scancode_result['license_detections']))
-    #meta_table.add_row('License clues', json.dumps(scancode_result['license_clues']))
-    meta_table.add_row('Percentage of license text', str(scancode_result['percentage_of_license_text']))
-    meta_table.add_row('Copyrights', "\n\n".join([x['copyright'] for x in scancode_result['copyrights']]))
-    #meta_table.add_row('Holders', json.dumps(scancode_result['holders']))
-    meta_table.add_row('Authors', "\n\n".join([x['author'] for x in scancode_result['authors']]))
+
+    if not 'detections' in ignore:
+        meta_table.add_row('License detections', create_license_table(scancode_result['license_detections']))
+
+    # if not 'clues' in ignore:
+    #    meta_table.add_row('License clues', json.dumps(scancode_result['license_clues']))
+
+    if not 'percentage' in ignore:
+        meta_table.add_row('Percentage of license text', str(scancode_result['percentage_of_license_text']))
+
+    if not 'copyrights' in ignore:
+        meta_table.add_row('Copyrights', "\n\n".join([x['copyright'] for x in scancode_result['copyrights']]))
+
+    if not 'holders' in ignore:
+        meta_table.add_row('Holders', "\n\n".join([x['holder'] for x in scancode_result['holders']]))
+
+    if not 'authors' in ignore:
+        meta_table.add_row('Authors', "\n\n".join([x['author'] for x in scancode_result['authors']]))
     return meta_table
 
 @click.group()
@@ -52,7 +68,9 @@ def app():
 @app.command(short_help='Pretty print Scancode result')
 @click.option('--result', '-j', required=True, help='Scancode result JSON', type=click.Path(path_type=pathlib.Path, exists=True))
 @click.option('--results-only', is_flag=True, help='only show entries with results')
-def print(result, results_only):
+@click.option('--ignore', '-i', multiple=True, type=click.Choice(['authors', 'copyrights', 'detections', 'holders', 'percentage'],
+              case_sensitive=False))
+def print_results(result, results_only, ignore):
     try:
         with open(result) as result_file:
             scancode_results = json.load(result_file)
@@ -67,7 +85,7 @@ def print(result, results_only):
         if results_only:
             if not (f['authors'] or f['copyrights'] or f['license_detections']):
                 continue
-        rich.print(build_meta_report(f))
+        rich.print(build_meta_report(f, ignore))
 
 
 @app.command(short_help='Pretty print Scancode result tree')
