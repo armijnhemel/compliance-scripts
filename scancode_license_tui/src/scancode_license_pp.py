@@ -25,6 +25,7 @@ def create_license_table(results):
         for m in r['matches']:
             result_table.add_row('License expression', m['license_expression'])
             result_table.add_row('License expression (SPDX)', m['spdx_license_expression'])
+            result_table.add_row('Start/End lines', f"{m['start_line']} - {m['end_line']}")
             result_table.add_row('Score', str(m['score']))
             result_table.add_row('Rule', m['rule_identifier'])
             result_table.add_row('Rule URL', m['rule_url'])
@@ -70,7 +71,8 @@ def print(result, results_only):
 
 
 @app.command(short_help='Pretty print Scancode result tree')
-@click.option('--result', '-j', required=True, help='Scancode result JSON', type=click.Path(path_type=pathlib.Path, exists=True))
+@click.option('--result', '-j', required=True, help='Scancode result JSON',
+              type=click.Path(path_type=pathlib.Path, exists=True))
 @click.option('--results-only', is_flag=True, help='only show entries with results')
 def print_tree(result, results_only):
     try:
