@@ -8,6 +8,8 @@ compatibility mode.
 This is not meant as a full replacement for other tools processing ScanCode
 results, but as a quick inspection tool.
 
+An example file to test with can be found in the `data` directory.
+
 ## Using the tool
 
 First you need to make sure you have the dependencies installed, see
@@ -33,6 +35,8 @@ $ python scancode_license_tui.py -j /path/to/result/json --results-only
 ```
 
 Quiting the tool: CTRL-q
+
+![Screenshot of processing busybox.json](scancode_tui.png)
 
 # Scancode pretty printer
 
