@@ -39,26 +39,26 @@ def build_meta_report(scancode_result, ignore):
     # Only files are added to the report, so adding a row for the file type makes little sense
     #meta_table.add_row('Type', scancode_result['type'])
 
-    meta_table.add_row('Detected licenses', scancode_result['detected_license_expression'])
-    meta_table.add_row('Detected licenses (SPDX)', scancode_result['detected_license_expression_spdx'])
+    meta_table.add_row('Detected licenses', scancode_result.get('detected_license_expression', ''))
+    meta_table.add_row('Detected licenses (SPDX)', scancode_result.get('detected_license_expression_spdx', ''))
 
     if not 'detections' in ignore:
-        meta_table.add_row('License detections', create_license_table(scancode_result['license_detections']))
+        meta_table.add_row('License detections', create_license_table(scancode_result.get('license_detections', [])))
 
     # if not 'clues' in ignore:
     #    meta_table.add_row('License clues', json.dumps(scancode_result['license_clues']))
 
     if not 'percentage' in ignore:
-        meta_table.add_row('Percentage of license text', str(scancode_result['percentage_of_license_text']))
+        meta_table.add_row('Percentage of license text', str(scancode_result.get('percentage_of_license_text', '')))
 
     if not 'copyrights' in ignore:
-        meta_table.add_row('Copyrights', "\n\n".join([x['copyright'] for x in scancode_result['copyrights']]))
+        meta_table.add_row('Copyrights', "\n\n".join([x['copyright'] for x in scancode_result.get('copyrights', [])]))
 
     if not 'holders' in ignore:
-        meta_table.add_row('Holders', "\n\n".join([x['holder'] for x in scancode_result['holders']]))
+        meta_table.add_row('Holders', "\n\n".join([x['holder'] for x in scancode_result.get('holders', [])]))
 
     if not 'authors' in ignore:
-        meta_table.add_row('Authors', "\n\n".join([x['author'] for x in scancode_result['authors']]))
+        meta_table.add_row('Authors', "\n\n".join([x['author'] for x in scancode_result.get('authors', [])]))
     return meta_table
 
 @click.group()
@@ -143,11 +143,11 @@ def print_tree(result, results_only):
                 # only the leaf nodes can contain actual results
                 # tag the entries that have any interesting information
                 extras = []
-                if scancode_dict[node_name]['authors']:
+                if scancode_dict[node_name].get('authors', []):
                     extras.append(" \U000024b6")
-                if scancode_dict[node_name]['copyrights']:
+                if scancode_dict[node_name].get('copyrights', []):
                     extras.append(" \U000024b8")
-                if scancode_dict[node_name]['license_detections']:
+                if scancode_dict[node_name].get('license_detections', []):
                     extras.append(" \U000024c1")
 
                 if extras:
