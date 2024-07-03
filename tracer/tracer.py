@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0
 #
-# Copyright 2017-2023 - Armijn Hemel
+# Copyright 2017-2024 - Armijn Hemel
 #
 # ---- USAGE ----
 #
@@ -67,11 +67,15 @@ import sys
 
 import click
 
+# directories that can safely be ignored as the files in there
+# are not real files, but various Linux kernel subsystems exported
+# as files.
 IGNORE_DIRECTORIES = ['/dev/', '/proc/', '/sys/']
 
 # there are only a few syscalls that are interesting
 INTERESTING_SYSCALLS = ['open', 'openat', 'chdir', 'fchdir',
-                        'rename', 'renameat2', 'clone', 'clone3', 'symlink', 'symlinkat']
+                        'rename', 'renameat2', 'clone', 'clone3',
+                        'symlink', 'symlinkat']
 
 # regular expression for process IDs (PIDs)
 pidre = re.compile(r'\[pid\s+(\d+)\]')
@@ -80,19 +84,19 @@ pid_with_syscall_re = re.compile(r'\[pid\s+(\d+)\]\s+(\w+)\(')
 # some precompiled regular expressions for interesting system calls
 # valid filename characters:
 # <>\w/\-+,.*$:;
-chdirre = re.compile(r"chdir\(\"([\w/\-_+,.]+)\"\s*\)\s+=\s+(\d+)")
-fchdirre = re.compile(r"fchdir\((\d+)<(.*)>\s*\)\s+=\s+(\d+)")
-getcwdre = re.compile(r"getcwd\(\"([\w/\-_+,.]+)\", \d+\)\s+=\s+")
-openre = re.compile(r"open\(\"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
-openatre = re.compile(r"openat\((\w+), \"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
-openatre2 = re.compile(r"openat\((\w+)<(.*)>, \"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
-renamere = re.compile(r"rename\(\"([\w/\-+,.]+)\",\s+\"([\w/\-+,.]+)\"\)\s+=\s+(\-?\d+)")
-clonere = re.compile(r"clone\([\w/\-+,.=]+,\s+[\w|=]+,\s+[\w=]+?\)\s+=\s+(\-?\d+)")
+chdir_re = re.compile(r"chdir\(\"([\w/\-_+,.]+)\"\s*\)\s+=\s+(\d+)")
+fchdir_re = re.compile(r"fchdir\((\d+)<(.*)>\s*\)\s+=\s+(\d+)")
+getcwd_re = re.compile(r"getcwd\(\"([\w/\-_+,.]+)\", \d+\)\s+=\s+")
+open_re = re.compile(r"open\(\"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
+openat_re = re.compile(r"openat\((\w+), \"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
+openat_re2 = re.compile(r"openat\((\w+)<(.*)>, \"([<>\w/\-+,.*$:;]+)\", ([\w|]+)(?:,\s+\d+)?\)\s+= (\-?\d+)<(.*)>$")
+rename_re = re.compile(r"rename\(\"([\w/\-+,.]+)\",\s+\"([\w/\-+,.]+)\"\)\s+=\s+(\-?\d+)")
+clone_re = re.compile(r"clone\([\w/\-+,.=]+,\s+[\w|=]+,\s+[\w=]+?\)\s+=\s+(\-?\d+)")
 clone_resumed_re = re.compile(r"clone\s*resumed>\s*.*=\s+(\-?\d+)$")
-vforkresumedre = re.compile(r"vfork\s*resumed>\s*\)\s*=\s*(\d+)")
-vforkre = re.compile(r"vfork\(\s*\)\s*=\s*(\d+)")
-#execvere = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+\s+/\*\s+\d+\s+vars\s+\*/\)\s*=\s*(?P<returncode>\-?\d+)")
-execvere = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+\s+/\*\s+\d+\s+vars\s+\*/")
+vfork_resumed_re = re.compile(r"vfork\s*resumed>\s*\)\s*=\s*(\d+)")
+vfork_re = re.compile(r"vfork\(\s*\)\s*=\s*(\d+)")
+#execve_re = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+\s+/\*\s+\d+\s+vars\s+\*/\)\s*=\s*(?P<returncode>\-?\d+)")
+execve_re = re.compile(r"execve\(\"(?P<command>.*)\",\s*\[(?P<args>.*)\],\s+0x\w+\s+/\*\s+\d+\s+vars\s+\*/")
 # symlinkre =
 # symlinkatre =
 
@@ -147,7 +151,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
 
     if syscall in ['chdir', 'fchdir']:
         if syscall == 'fchdir':
-            fchdirres = fchdirre.search(traceline)
+            fchdirres = fchdir_re.search(traceline)
             if fchdirres is not None:
                 fchdirfd = int(fchdirres.groups()[0])
                 full_chdir_path = fchdirres.groups()[1]
@@ -155,7 +159,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                 pid_to_cwd[pid] = full_chdir_path
                 directories.add(full_chdir_path)
         else:
-            chdirres = chdirre.search(traceline)
+            chdirres = chdir_re.search(traceline)
             if chdirres is not None:
                 chdirpath = chdirres.groups()[0]
                 chdirresult = int(chdirres.groups()[1])
@@ -170,7 +174,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                     if pid in pid_to_cwd:
                         pid_to_cwd[pid] = os.path.normpath(os.path.join(basepath, pid_to_cwd[pid], chdirpath))
     elif syscall == 'open':
-        openres = openre.search(traceline)
+        openres = open_re.search(traceline)
         if openres is not None:
             openreturn = openres.groups()[2]
             if openreturn == '-1':
@@ -213,7 +217,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
             open_files.add(full_open_path)
 
     if syscall == 'openat':
-        openres = openatre.search(traceline)
+        openres = openat_re.search(traceline)
         if openres is not None:
             openfd = os.path.normpath(openres.groups()[0])
             openpath = os.path.normpath(openres.groups()[1])
@@ -221,7 +225,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
             openreturn = openres.groups()[3]
             full_open_path = openres.groups()[4]
         else:
-            openres = openatre2.search(traceline)
+            openres = openat_re2.search(traceline)
             if openres is not None:
                 openfd = os.path.normpath(openres.groups()[0])
                 openpath = os.path.normpath(openres.groups()[2])
@@ -258,7 +262,7 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
             open_files.add(full_open_path)
 
     if syscall == 'rename':
-        renameres = renamere.search(traceline)
+        renameres = rename_re.search(traceline)
         if renameres is not None:
             sourcefile = os.path.normpath(os.path.join(pid_to_cwd[pid], renameres.groups()[0]))
             targetfile = os.path.normpath(os.path.join(pid_to_cwd[pid],renameres.groups()[1]))
@@ -399,14 +403,14 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
         # needs to be properly stored.
 
         if syscall == 'execve':
-            execveres = execvere.search(line)
+            execveres = execve_re.search(line)
             if execveres is not None:
                 #pid_to_cmd[pid] = execveres.group('command')
                 exec_programs.add(execveres.group('command'))
 
         if syscall == 'getcwd' and not first_getcwd:
             # record the first instance of getcwd()
-            cwd = getcwdre.match(line).groups()[0]
+            cwd = getcwd_re.match(line).groups()[0]
             default_cwd = cwd
             first_getcwd = True
             if 'default' not in pid_to_cwd:
@@ -422,7 +426,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 backlogged = True
                 continue
 
-            cloneres = clonere.search(line)
+            cloneres = clone_re.search(line)
             if cloneres is not None:
                 if pid not in parent_to_pid:
                     parent_to_pid[pid] = []
@@ -492,7 +496,7 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
                 if 'default' in pid_to_cmd:
                     pid_to_cmd[pid] = copy.deepcopy(pid_to_cmd['default'])
             if 'vfork' in line:
-                vforkres = vforkresumedre.search(line)
+                vforkres = vfork_resumed_re.search(line)
                 if vforkres is not None:
                     if pid not in parent_to_pid:
                         parent_to_pid[pid] = []
