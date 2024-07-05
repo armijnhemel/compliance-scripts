@@ -9,8 +9,6 @@ import pathlib
 import subprocess
 import sys
 
-from typing import Any
-
 import click
 
 @click.command(short_help='Compare two directories of ELF files and write diffs')
@@ -104,7 +102,8 @@ def main(first_directory, second_directory, diff_directory, verbose):
                     parent_dir_full = diff_directory / parent_dir
                     parent_dir_full.mkdir(parents=True, exist_ok=True)
                 with open(diff_directory / f, 'w') as out:
-                    diff_result = difflib.unified_diff(first_stdout.decode().splitlines(), second_stdout.decode().splitlines(),
+                    diff_result = difflib.unified_diff(first_stdout.decode().splitlines(),
+                                  second_stdout.decode().splitlines(),
                                   fromfile=f'a/{f}', tofile=f'b/{f}', lineterm='')
                     for l in diff_result:
                         out.write(l)
