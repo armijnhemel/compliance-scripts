@@ -219,18 +219,19 @@ def process_trace_line(traceline, default_pid, pid_to_cwd, pid_to_cmd, directori
                 ignore_files.add(targetfile)
 
 @click.command(short_help='Process strace output')
-@click.option('--basepath', '-b', 'basepath', required=True,
+@click.option('--base-path', '-b', 'basepath', required=True,
               help='base path of source director during build', type=str)
-@click.option('--buildid', '-u', 'buildid', required=True,
+@click.option('--build-id', '-u', 'buildid', required=True,
               help='string to identify the build with', type=str)
-@click.option('--sourcedir', '-s', 'sourcedir',
+@click.option('--source-dir', '-s', 'sourcedir',
               help='path of source directory', type=click.Path(path_type=pathlib.Path))
-@click.option('--targetdir', '-t', 'targetdir',
+@click.option('--target-dir', '-t', 'targetdir',
               help='directory to copy/write files that were opened during the build',
               type=click.Path(path_type=pathlib.Path))
 @click.option('--tracefile', '-f', 'tracefile', required=True, help='path to trace file',
                type=click.File('r'))
-def main(basepath, buildid, sourcedir, targetdir, tracefile):
+@click.option('--verbose', '-v', is_flag=True, help='be verbose')
+def main(basepath, buildid, sourcedir, targetdir, tracefile, verbose):
     # the base path of the source code directory used during the build.
     # This might actually be different than --sourcedir
     # in case the trace file is processed on a different machine
@@ -605,7 +606,8 @@ def main(basepath, buildid, sourcedir, targetdir, tracefile):
             process_trace_line(line.strip(), default_pid, pid_to_cwd, pid_to_cmd, directories,
                                ignore_files, open_files, basepath, default_cwd, pid_to_pid_label)
 
-    print("END RECONSTRUCTION", datetime.datetime.utcnow().isoformat(), file=sys.stderr)
+    if verbose:
+        print("END RECONSTRUCTION", datetime.datetime.now(datetime.UTC).isoformat(), file=sys.stderr)
 
     if copy_files:
         print(f"COPYING FILES TO {targetdir}")
