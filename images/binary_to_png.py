@@ -20,7 +20,7 @@ def main(input_file, output_file):
     binary_data = input_file.read()
 
     # images have a width and a height. Set the height to 512 bytes.
-    height = 512
+    height = 1024
     width = len(binary_data)//height
 
     # padding bytes might be needed here TODO
