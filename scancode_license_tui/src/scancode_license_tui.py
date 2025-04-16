@@ -13,14 +13,12 @@ from typing import Any
 import click
 
 from rich.console import Group, group
-from rich.panel import Panel
-from rich import print_json
 import rich.table
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, VerticalScroll
-from textual.widgets import Footer, Static, Tree
+from textual.containers import Container, VerticalScroll
+from textual.widgets import Footer, Markdown, Static, Tree
 from textual.widgets.tree import TreeNode
 
 #from textual.logging import TextualHandler
@@ -190,8 +188,8 @@ def main(result, source_directory, results_only):
         print("invalid JSON, exiting.", file=sys.stderr)
         sys.exit(1)
 
-    app = ScancodeLicenseBrowser(result, source_directory, results_only)
-    app.run()
+    scancode_app = ScancodeLicenseBrowser(result, source_directory, results_only)
+    scancode_app.run()
 
 if __name__ == "__main__":
     main()
