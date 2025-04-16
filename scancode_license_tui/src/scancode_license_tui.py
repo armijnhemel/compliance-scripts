@@ -171,8 +171,10 @@ class ScancodeLicenseBrowser(App):
             yield meta_table
 
 @click.command(short_help='Interactive Scancode result browser')
-@click.option('--result', '-j', required=True, help='Scancode result JSON', type=click.Path(path_type=pathlib.Path, exists=True))
-@click.option('--source-directory', '-d', help='source code directory', type=click.Path(path_type=pathlib.Path, exists=True))
+@click.option('--result', '-j', required=True, help='Scancode result JSON',
+               type=click.Path(path_type=pathlib.Path, exists=True))
+@click.option('--source-directory', '-d', help='source code directory',
+               type=click.Path(path_type=pathlib.Path, exists=True))
 @click.option('--results-only', is_flag=True, help='only show entries with results')
 def main(result, source_directory, results_only):
     # quick check to see if the JSON data is actually valid
