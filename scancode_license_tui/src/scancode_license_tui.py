@@ -18,12 +18,6 @@ from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
 from textual.widgets import DataTable, Footer, Header, Markdown, TextArea, Tree, TabbedContent, TabPane, Input
 
-#from textual.logging import TextualHandler
-
-#logging.basicConfig(
-    #level="NOTSET",
-    #handlers=[TextualHandler()],
-#)
 
 class ScancodeData():
     '''A representation of the Scancode data'''
