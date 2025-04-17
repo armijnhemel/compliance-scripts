@@ -12,14 +12,11 @@ from typing import Any
 
 import click
 
-from rich.console import Group, group
-import rich.table
-
+from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, VerticalScroll
-from textual.widgets import Footer, Markdown, Static, Tree
-from textual.widgets.tree import TreeNode
+from textual.widgets import Footer, Markdown, TextArea, Tree, TabbedContent, TabPane, Input, Header, DataTable
 
 #from textual.logging import TextualHandler
 
@@ -41,6 +38,9 @@ class ScancodeLicenseBrowser(App):
         self.json_file = result
         self.source_directory = source_directory
         self.results_only = results_only
+
+        self.result_widget = Markdown()
+        self.textarea = TextArea()
 
     def compose(self) -> ComposeResult:
         # read the scancode results
@@ -113,19 +113,30 @@ class ScancodeLicenseBrowser(App):
             except IndexError:
                 break
 
+        #sourcecode = open('/tmp/busybox-1.35.0/coreutils/df.c', 'r').read()
+        sourcecode = ''
+
         # Create a table with the results. The root element will
         # not have any associated data with it.
-        self.static_widget = Static(Group(self.build_meta_report(None)))
-        #self.static_widget2 = Static(Group(self.build_meta_report(None)))
-
+        yield Header()
         with Container(id='app-grid'):
-            yield tree
-            with VerticalScroll(id='result-area'):
-                yield self.static_widget
-            #if self.source_directory is not None:
-                #with VerticalScroll(id='source-code-area'):
-                    #yield self.static_widget2
+            with Container(id='left-grid'):
+                yield Input()
+                yield tree
+            with TabbedContent():
+                with TabPane('Scancode results'):
+                    with VerticalScroll(id='result-area'):
+                        yield self.result_widget
+                if self.source_directory is not None:
+                    with TabPane('Source code'):
+                        with VerticalScroll(id='file-area'):
+                            yield self.textarea
         yield Footer()
+
+        self.textarea.show_line_numbers = True
+        self.textarea.soft_wrap = True
+
+        self.textarea.text = sourcecode
 
     def on_tree_tree_highlighted(self, event: Tree.NodeHighlighted[None]) -> None:
         pass
@@ -133,40 +144,65 @@ class ScancodeLicenseBrowser(App):
     def on_tree_node_selected(self, event: Tree.NodeSelected[None]) -> None:
         '''Display the reports of a node when it is selected'''
         if event.node.data is not None:
-            self.static_widget.update(Group(self.build_meta_report(event.node.data)))
+            self.result_widget.update(self.build_meta_report(event.node.data))
         else:
-            self.static_widget.update()
+            self.result_widget.update('')
 
     def on_tree_node_collapsed(self, event: Tree.NodeCollapsed[None]) -> None:
         pass
 
-    @group()
-    def create_license_table(self, results):
-        for r in results:
-            result_table = rich.table.Table('', '', title=r['license_expression'], show_lines=True, show_header=False)
-            for m in r['matches']:
-                result_table.add_row('License expression', m['license_expression'])
-                result_table.add_row('License expression (SPDX)', m['spdx_license_expression'])
-                result_table.add_row('Score', str(m['score']))
-                result_table.add_row('Rule', m['rule_identifier'])
-                result_table.add_row('Rule URL', m['rule_url'])
-            yield result_table
+    def build_meta_report(self, result):
+        new_markdown = ""
+        if result:
+            new_markdown += "# Scancode data\n"
+            new_markdown += "| | |\n|--|--|\n"
+            new_markdown += f"|**Path** | {result['path']}\n"
+            new_markdown += f"|**Type** | {result['type']}\n"
 
-    @group()
-    def build_meta_report(self, scancode_result):
-        if scancode_result:
-            meta_table = rich.table.Table('', '', title='Scancode data', show_lines=True, show_header=False)
-            meta_table.add_row('Path', scancode_result['path'])
-            meta_table.add_row('Type', scancode_result['type'])
-            meta_table.add_row('Detected licenses', scancode_result.get('detected_license_expression', ""))
-            meta_table.add_row('Detected licenses (SPDX)', scancode_result.get('detected_license_expression_spdx', ''))
-            meta_table.add_row('License detections', self.create_license_table(scancode_result.get('license_detections', [])))
-            #meta_table.add_row('License clues', json.dumps(scancode_result['license_clues']))
-            meta_table.add_row('Percentage of license text', str(scancode_result.get('percentage_of_license_text', '')))
-            meta_table.add_row('Copyrights', "\n\n".join([x['copyright'] for x in scancode_result.get('copyrights', [])]))
-            meta_table.add_row('Holders', "\n\n".join([x['holder'] for x in scancode_result.get('holders', [])]))
-            meta_table.add_row('Authors', "\n\n".join([x['author'] for x in scancode_result.get('authors', [])]))
-            yield meta_table
+            new_markdown += "# Licenses\n"
+            new_markdown += "| | |\n|--|--|\n"
+            detected_licenses = result.get('detected_license_expression')
+            if detected_licenses:
+                new_markdown += f"|**Detected licenses** | {detected_licenses}\n"
+            else:
+                new_markdown += "|**Detected licenses** | \n"
+
+            detected_licenses_spdx = result.get('detected_license_expression_spdx')
+            if detected_licenses:
+                new_markdown += f"|**Detected licenses (SPDX)** | {detected_licenses_spdx}\n"
+            else:
+                new_markdown += "|**Detected licenses (SPDX)** | \n"
+
+            new_markdown += f"|**Percentage of license text** | {result['percentage_of_license_text']}\n"
+
+            new_markdown += "# License rules\n"
+            new_markdown += "|**License** |**SPDX**|**Score**|**Rule**|**Rule URL**|\n"
+            new_markdown += "|--:|--|--|--|--|\n"
+
+            license_detections = result.get('license_detections', [])
+            for l in license_detections:
+                for m in l['matches']:
+                    new_markdown += f"|{m['license_expression']}|{m['license_expression_spdx']}|{str(m['score'])}|{m['rule_identifier']}|{m['rule_url']}|\n"
+
+            new_markdown += "# Copyrights\n"
+            new_markdown += "|**Start line** |**Value**|\n|--:|--|\n"
+            copyrights = result.get('copyrights', [])
+            for c in copyrights:
+                new_markdown += f"|{c['start_line']}|{c['copyright']}|\n"
+
+            new_markdown += "# Holders\n"
+            new_markdown += "|**Start line** |**Value**|\n|--:|--|\n"
+            copyrights = result.get('holders', [])
+            for c in copyrights:
+                new_markdown += f"|{c['start_line']}|{c['holder']}|\n"
+
+            new_markdown += "# Authors\n"
+            new_markdown += "|**Start line** |**Value**|\n|--:|--|\n"
+            copyrights = result.get('authors', [])
+            for c in copyrights:
+                new_markdown += f"|{c['start_line']}|{c['author']}|\n"
+
+        return new_markdown
 
 @click.command(short_help='Interactive Scancode result browser')
 @click.option('--result', '-j', required=True, help='Scancode result JSON',
