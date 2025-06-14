@@ -7,6 +7,7 @@ let
 
   my-python = pkgs.python3.withPackages (p: with p; [
     click
+    kaitaistruct
   ]);
     
 in
