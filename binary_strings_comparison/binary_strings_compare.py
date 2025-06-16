@@ -22,7 +22,8 @@ import elf
 @click.option('--diff-directory', '-d', required=True, help='second directory',
                type=click.Path(path_type=pathlib.Path, exists=True))
 @click.option('--verbose', '-v', is_flag=True, help='be verbose')
-@click.option('--raw', 'is_raw', is_flag=True, help='use raw binary instead of just sections')
+@click.option('--raw/--no-raw', 'is_raw', default=True,
+              help='use raw binary instead of the .rodata section')
 @click.option('--sort/--no-sort', 'use_sort', default=False, help='sort results')
 def main(first_directory, second_directory, diff_directory, verbose, is_raw, use_sort):
     if not first_directory.is_dir():
