@@ -81,8 +81,8 @@ In firmware files there can easily be a few hundred binaries that need to be
 matched. This is a task that can be completely automated, and that's what the
 script `binary_strings_compare.py` does.
 
-Dependencies are modest: `click` (Python module) and `binutils` (for `strings`)
-are all that's needed.
+Dependencies are modest: `click` and `kaitaistruct` (Python modules) and
+`binutils` (for `strings`) are all that's needed.
 
 Parameters to the script are:
 
@@ -96,9 +96,18 @@ structure, as the script relies on the (relative) paths being identical.
 For each real file (symbolic links are ignored) the file is opened to verify if
 the first 4 bytes contain the ELF magic. Then a SHA256 checksum is computed.
 For each file that can be found in both directories the checksums are compared.
-If the checksums are not identical the `strings` command is run, a unified diff
-is computed, and the output is written to the same (relative) path as the
-original file, but then in the directory for the unified diffs.
+If the checksums are not identical then depending on the options provided either
+one of two things is done:
+
+* the `strings` command is run on the entire "raw" binary (`--raw`, default)
+* the `strings` command is run on only the `.rodata` section (`--no-raw`)
+
+Then a unified diff of the results is computed, and the output is written to the
+same (relative) path as the original file, but then in the directory for the
+unified diffs. The number of context lines is hardcoded to `0`, but can be
+easily changed. If only the `.rodata` section is looked at it is recommended
+to also use the `--sort` option which sorts and deduplicates the extracted
+strings.
 
 So for example if both directories contain the (relative) path `./bin/busybox`
 with a copy of BusyBox, then the difference will be written to `./bin/busybox`
